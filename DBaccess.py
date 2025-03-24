@@ -5,10 +5,10 @@ from requests.auth import HTTPDigestAuth
 import json
 
 
-endpoint_URL = "http://localhost:8890/sparql-auth"
+endpoint_URL = "https://virtuoso.endeavour.cs.vt.edu/sparql-auth"
 graph_URI = "http://localhost:8890/CSV#"
 username = "dba"
-password = "dba"
+password = "admin"
 
 
 
