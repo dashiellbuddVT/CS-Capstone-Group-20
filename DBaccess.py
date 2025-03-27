@@ -10,10 +10,6 @@ graph_URI = "http://localhost:8890/CSV#"
 username = "dba"
 password = "admin"
 
-
-
-
-
 def sendQuery(q):
     headers = {
         "Content-Type": "application/sparql-update; charset=utf-8",

@@ -1,67 +1,92 @@
-# Import Module
 from tkinter import *
-from DBaccess import *
+from DBaccess import *  
+from Neo4jaccess import *
 import webbrowser
 
-# create root window
+# Root window
 root = Tk()
-
-# root window title and dimension
-root.title("Welcome to GeekForGeeks")
-# Set geometry (widthxheight)
-root.geometry('1200x800')
+root.title("ETD Knowledge Graph Search")
+root.geometry('950x900')
 
 
-# adding Entry Field
-numEntries = Entry(root, width = 45)
-numEntries.grid()
+backends = {
+    "virtuoso": {
+        "get_titles": getnTitles,
+        "get_link": getLink,
+        "get_meta": getMD
+    },
+    "neo4j": {
+        "get_titles": getNeo4jTitles,
+        "get_link": getNeo4jLink,
+        "get_meta": getNeo4jMD
+    }
+}
 
-
-resultsList = Listbox(root, height = 50, width = 100, selectmode= SINGLE)
-resultsList.grid(row=1, columnspan = 2)
-
-metaDataList = Listbox(root, height= 25, width = 100)
-metaDataList.grid(column = 2, row = 1, columnspan=2)
-
+current_backend = None
 results_IRIs = []
 
-# function to display text when
-# button is clicked
-def getEntries():
-    resultsList.delete(0,END)
-    searchButton.configure(text="Reload")
-    linkButton.configure(fg="green")
-    metaDataButton.configure(fg="green")
-    for result in getnTitles(numEntries.get()):
-        results_IRIs.insert(0, result["s"]["value"])
-        resultsList.insert(0, result["o"]["value"])
+def findETDs(backend):
+    global current_backend
+    current_backend = backend
+    resultsList.delete(0, END)
+    metaDataList.delete(0, END)
+    results_IRIs.clear()
+    
+    try:
+        query_fn = backends[backend]["get_titles"]
+        results = query_fn(numEntries.get())
+        for result in results:
+            results_IRIs.append(result["s"]["value"])
+            resultsList.insert(END, result["o"]["value"])
+    except Exception as e:
+        resultsList.insert(END, f"{backend.capitalize()} Error: {e}")
 
 def followLink():
-    link = getLink(results_IRIs[resultsList.curselection()[0]])
-    webbrowser.open_new(link)
+    try:
+        index = resultsList.curselection()[0]
+        iri = results_IRIs[index]
+        link = backends[current_backend]["get_link"](iri)
+        if link:
+            webbrowser.open_new_tab(link)
+    except Exception as e:
+        print("Error:", e)
 
 def showMetaData():
-    MD = getMD(results_IRIs[resultsList.curselection()[0]])
-    for line in MD:
-        metaDataList.insert(END, line)
-    
+    try:
+        index = resultsList.curselection()[0]
+        iri = results_IRIs[index]
+        metaDataList.delete(0, END)
+        MD = backends[current_backend]["get_meta"](iri)
+        for line in MD:
+            metaDataList.insert(END, line)
+    except Exception as e:
+        print("Error:", e)
 
-linkButton = Button(root, text = 'Go to paper', fg ="red", command=followLink)
-linkButton.grid(column=2, row=0)
-metaDataButton = Button(root, text = 'more info', fg ="red", command=showMetaData)
-metaDataButton.grid(column=3, row=0)
+# UI Layout 
 
-# button widget with red color text
-# inside
-searchButton = Button(root, text = "Find ETDs" ,
-             fg = "green", command=getEntries, width = 45)
-# set Button grid
-searchButton.grid(column=1, row=0)
+# Entry Field
+numEntries = Entry(root, width=40)
+numEntries.grid(row=0, column=0, padx = 10, pady=10)
 
+# Search Buttons
+Button(root, text="Find ETDs (Virtuoso)", fg="green",
+       command=lambda: findETDs("virtuoso")).grid(row=0, column=1, pady=10, padx=10)
 
+Button(root, text="Find ETDs (Neo4j)", fg="blue",
+       command=lambda: findETDs("neo4j")).grid(row=0, column=2, pady=10, padx=10)
 
-# all widgets will be here
-# Execute Tkinter
+# Results List
+resultsList = Listbox(root, height=25, width=100, selectmode=SINGLE)
+resultsList.grid(row=1, column=0, columnspan=4, padx=10, pady=10)
+
+# Action Buttons
+Button(root, text="Go to Paper", fg="red", command=followLink).grid(row=2, column=1, pady=10)
+Button(root, text="More Info", fg="red", command=showMetaData).grid(row=2, column=2, pady=10)
+
+# Metadata Label + List
+Label(root, text="Metadata:").grid(row=3, column=0, sticky=W, padx=10)
+metaDataList = Listbox(root, height=15, width=100)
+metaDataList.grid(row=4, column=0, columnspan=4, padx=10, pady=10)
+
+# Run the GUI
 root.mainloop()
-
-
