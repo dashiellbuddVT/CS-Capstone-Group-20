@@ -25,7 +25,7 @@ python3 ETDQueries.py
 
 #### Loading ETDs (Note: Database is Read-Only)
 ```bash
-python3 ETDLoader.py path/to/etds.json [--force]
+python3 ETDLoader.py 
 ```
 
 #### Testing ETD Loader
