@@ -30,8 +30,17 @@ python3 ETDLoader.py path/to/etds.json [--force]
 
 #### Testing ETD Loader
 ```bash
+# Run a single test with specified size
 python3 test_etd_loader.py --size <number_of_test_etds>
+
+# Run performance benchmark with multiple dataset sizes
+python3 test_etd_loader.py --benchmark
+
+# Prevent cleanup of test data after test runs
+python3 test_etd_loader.py --size <number_of_test_etds> --no-cleanup
 ```
+
+The benchmark option tests the loader with multiple dataset sizes (10, 50, 100, 500, 1000 ETDs) and generates a performance graph showing execution time and loading rates.
 
 #### Exploring ETDs (GUI Application)
 ```bash
