@@ -116,31 +116,40 @@ def create_insert_query(etds):
         # URI for the ETD
         etd_uri = f"http://localhost:8890/etd/{etd['id']}"
         
-        # Add each triple on a new line
-        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/title> \"{etd['title'].replace('"', '\\\"')}\" ."
-        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/author> \"{etd['author'].replace('"', '\\\"')}\" ."
+        # Safely escape and format the title
+        title = etd['title'].replace('"', '\\"')
+        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/title> \"{title}\" ."
+        
+        author = etd['author'].replace('"', '\\"')
+        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/author> \"{author}\" ."
+        
         query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/date> \"{etd['date']}\" ."
         query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/year> \"{etd['year']}\" ."
         
         # Add URI if available
         if 'uri' in etd and etd['uri']:
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/uri> \"{etd['uri'].replace('"', '\\\"')}\" ."
+            uri = etd['uri'].replace('"', '\\"')
+            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/uri> \"{uri}\" ."
         
         # Additional metadata if available
         if 'abstract' in etd and etd['abstract']:
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/abstract> \"{etd['abstract'].replace('"', '\\\"')}\" ."
+            abstract = etd['abstract'].replace('"', '\\"')
+            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/abstract> \"{abstract}\" ."
         
         if 'department' in etd and etd['department']:
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/department> \"{etd['department'].replace('"', '\\\"')}\" ."
+            department = etd['department'].replace('"', '\\"')
+            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/department> \"{department}\" ."
         
         if 'university' in etd and etd['university']:
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/university> \"{etd['university'].replace('"', '\\\"')}\" ."
+            university = etd['university'].replace('"', '\\"')
+            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/university> \"{university}\" ."
         
         # Keywords as separate triples
         if 'keywords' in etd and etd['keywords']:
             for keyword in etd['keywords']:
                 if keyword:
-                    query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/keyword> \"{keyword.replace('"', '\\\"')}\" ."
+                    keyword = keyword.replace('"', '\\"')
+                    query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/keyword> \"{keyword}\" ."
     
     # Close the query - exactly two closing braces, no more
     query += "\n}}"
