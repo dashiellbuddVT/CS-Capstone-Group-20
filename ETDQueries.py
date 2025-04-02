@@ -4,7 +4,7 @@ import json
 
 # Configuration - same as in DBaccess.py
 endpoint_URL = "https://virtuoso.endeavour.cs.vt.edu/sparql-auth"
-graph_URI = "http://localhost:8890/CSV#"
+graph_URI = "http://localhost:8890/ETDs"
 username = "dba"
 password = "admin"
 
@@ -27,7 +27,7 @@ def get_etd_titles(limit=100):
     """Get ETD titles with limit"""
     query = f"""
     SELECT * FROM <{graph_URI}>
-    WHERE {{?s <http://localhost:8890/schemas/CSV/title> ?o}}
+    WHERE {{?s <http://localhost:8890/schemas/ETDs/title> ?o}}
     LIMIT {limit}
     """
     response = send_query(query)
@@ -42,7 +42,7 @@ def get_etd_link(iri):
     """Get link for an ETD by IRI"""
     query = f"""
     SELECT * FROM <{graph_URI}>
-    WHERE {{<{iri}> <http://localhost:8890/schemas/CSV/uri> ?o}}
+    WHERE {{<{iri}> <http://localhost:8890/schemas/ETDs/uri> ?o}}
     LIMIT 1
     """
     response = send_query(query)
@@ -69,7 +69,7 @@ def get_etd_metadata(iri):
     metadata = []
     
     for attribute in bindings:
-        prop = attribute["p"]["value"].replace("http://localhost:8890/schemas/CSV/", "")
+        prop = attribute["p"]["value"].replace("http://localhost:8890/schemas/ETDs/", "")
         value = attribute["o"]["value"]
         metadata.append(f"{prop}: {value}")
     
@@ -80,7 +80,7 @@ def search_etds_by_keyword(keyword, limit=100):
     query = f"""
     SELECT DISTINCT ?s ?title FROM <{graph_URI}>
     WHERE {{
-        ?s <http://localhost:8890/schemas/CSV/title> ?title .
+        ?s <http://localhost:8890/schemas/ETDs/title> ?title .
         FILTER(CONTAINS(LCASE(?title), LCASE("{keyword}")))
     }}
     LIMIT {limit}
@@ -98,8 +98,8 @@ def get_etds_by_year(year, limit=100):
     query = f"""
     SELECT ?s ?title FROM <{graph_URI}>
     WHERE {{
-        ?s <http://localhost:8890/schemas/CSV/year> "{year}" .
-        ?s <http://localhost:8890/schemas/CSV/title> ?title .
+        ?s <http://localhost:8890/schemas/ETDs/year> "{year}" .
+        ?s <http://localhost:8890/schemas/ETDs/title> ?title .
     }}
     LIMIT {limit}
     """
@@ -116,7 +116,7 @@ def get_etd_count():
     query = f"""
     SELECT (COUNT(DISTINCT ?s) as ?count) FROM <{graph_URI}>
     WHERE {{
-        ?s <http://localhost:8890/schemas/CSV/title> ?title .
+        ?s <http://localhost:8890/schemas/ETDs/title> ?title .
     }}
     """
     response = send_query(query)

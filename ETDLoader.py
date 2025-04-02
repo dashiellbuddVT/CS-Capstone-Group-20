@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 # Configuration
 endpoint_URL = "https://virtuoso.endeavour.cs.vt.edu/sparql-auth"
-graph_URI = "http://localhost:8890/CSV#"
+graph_URI = "http://localhost:8890/ETDs"
 username = "dba"
 password = "admin"
 batch_size = 100  # Reduced from 1000 to avoid 413 errors
@@ -23,7 +23,7 @@ def check_insert_permissions():
     insert_query = f"""
     INSERT DATA {{ 
       GRAPH <{graph_URI}> {{ 
-        <{test_uri}> <http://localhost:8890/schemas/CSV/test> "Permission test" . 
+        <{test_uri}> <http://localhost:8890/schemas/ETDs/test> "Permission test" . 
       }}
     }}
     """
@@ -36,14 +36,13 @@ def check_insert_permissions():
             # Verify the triple was actually inserted
             check_query = f"""
             SELECT ?o FROM <{graph_URI}>
-            WHERE {{ <{test_uri}> <http://localhost:8890/schemas/CSV/test> ?o }}
+            WHERE {{ <{test_uri}> <http://localhost:8890/schemas/ETDs/test> ?o }}
             """
             verify_response = send_sparql_query(check_query)
             
             if verify_response.status_code == 200:
                 results = verify_response.json()
                 bindings = results.get("results", {}).get("bindings", [])
-                
                 if bindings:
                     print(f"Successfully verified inserted triple: {bindings[0].get('o', {}).get('value', '')}")
                     
@@ -51,7 +50,7 @@ def check_insert_permissions():
                     delete_query = f"""
                     DELETE DATA {{ 
                       GRAPH <{graph_URI}> {{ 
-                        <{test_uri}> <http://localhost:8890/schemas/CSV/test> "Permission test" . 
+                        <{test_uri}> <http://localhost:8890/schemas/ETDs/test> "Permission test" . 
                       }}
                     }}
                     """
@@ -118,38 +117,37 @@ def create_insert_query(etds):
         
         # Safely escape and format the title
         title = etd['title'].replace('"', '\\"')
-        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/title> \"{title}\" ."
+        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/title> \"{title}\" ."
         
         author = etd['author'].replace('"', '\\"')
-        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/author> \"{author}\" ."
+        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/author> \"{author}\" ."
         
-        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/date> \"{etd['date']}\" ."
-        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/year> \"{etd['year']}\" ."
+        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/year> \"{etd['year']}\" ."
         
         # Add URI if available
         if 'uri' in etd and etd['uri']:
             uri = etd['uri'].replace('"', '\\"')
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/uri> \"{uri}\" ."
+            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/uri> \"{uri}\" ."
         
         # Additional metadata if available
         if 'abstract' in etd and etd['abstract']:
             abstract = etd['abstract'].replace('"', '\\"')
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/abstract> \"{abstract}\" ."
+            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/abstract> \"{abstract}\" ."
         
         if 'department' in etd and etd['department']:
             department = etd['department'].replace('"', '\\"')
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/department> \"{department}\" ."
+            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/department> \"{department}\" ."
         
         if 'university' in etd and etd['university']:
             university = etd['university'].replace('"', '\\"')
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/university> \"{university}\" ."
+            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/university> \"{university}\" ."
         
         # Keywords as separate triples
         if 'keywords' in etd and etd['keywords']:
             for keyword in etd['keywords']:
                 if keyword:
                     keyword = keyword.replace('"', '\\"')
-                    query += f"\n<{etd_uri}> <http://localhost:8890/schemas/CSV/keyword> \"{keyword}\" ."
+                    query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/keyword> \"{keyword}\" ."
     
     # Close the query - exactly two closing braces, no more
     query += "\n}}"
