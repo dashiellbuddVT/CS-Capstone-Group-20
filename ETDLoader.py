@@ -152,8 +152,8 @@ def create_insert_query(etds):
         query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/year> \"{etd['year']}\" ."
         
         # Add URI if available
-        if 'uri' in etd and etd['uri']:
-            uri = escape_for_sparql(etd['uri'])
+        if 'URI' in etd and etd['URI']:
+            uri = escape_for_sparql(etd['URI'])
             query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/uri> \"{uri}\" ."
         
         # Additional metadata if available
