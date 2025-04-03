@@ -71,8 +71,21 @@ def check_insert_permissions():
 
 def send_sparql_query(query):
     """Send a SPARQL query to the Virtuoso endpoint"""
-    # Print the first 500 characters of the query for debugging
-    print(f"DEBUG - Sending query (first 500 chars):\n{query[:500]}...\n")
+    
+    # Truncate the query output to avoid showing long abstracts
+    debug_query = query
+    # If query contains abstract, truncate it for display
+    if "abstract" in debug_query:
+        abstract_start = debug_query.find("<http://localhost:8890/schemas/ETDs/abstract>")
+        if abstract_start > 0:
+            abstract_end = debug_query.find(".", abstract_start)
+            if abstract_end > abstract_start:
+                # Take 50 chars of abstract to show as sample
+                abbreviated = debug_query[abstract_start:abstract_start+50] + "..." + debug_query[abstract_end:]
+                # Replace the portion of the debug query
+                debug_query = debug_query[:abstract_start] + abbreviated
+    
+    print(f"DEBUG - Sending query (first 500 chars):\n{debug_query[:500]}...\n")
     
     headers = {
         "Content-Type": "application/sparql-update; charset=utf-8",
@@ -115,38 +128,52 @@ def create_insert_query(etds):
         # URI for the ETD
         etd_uri = f"http://localhost:8890/etd/{etd['id']}"
         
+        # Helper function to properly escape text for SPARQL
+        def escape_for_sparql(text):
+            if not text:
+                return ""
+            # Handle common escape sequences
+            text = text.replace('\\', '\\\\')  
+            text = text.replace('"', '\\"')
+            text = text.replace('\n', '\\n')
+            text = text.replace('\r', '\\r')
+            text = text.replace('\t', '\\t')
+            # Remove other non-printable characters that could cause issues
+            text = ''.join(c for c in text if c.isprintable() or c in ['\n', '\r', '\t'])
+            return text
+        
         # Safely escape and format the title
-        title = etd['title'].replace('"', '\\"')
+        title = escape_for_sparql(etd['title'])
         query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/title> \"{title}\" ."
         
-        author = etd['author'].replace('"', '\\"')
+        author = escape_for_sparql(etd['author'])
         query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/author> \"{author}\" ."
         
         query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/year> \"{etd['year']}\" ."
         
         # Add URI if available
         if 'uri' in etd and etd['uri']:
-            uri = etd['uri'].replace('"', '\\"')
+            uri = escape_for_sparql(etd['uri'])
             query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/uri> \"{uri}\" ."
         
         # Additional metadata if available
         if 'abstract' in etd and etd['abstract']:
-            abstract = etd['abstract'].replace('"', '\\"')
+            abstract = escape_for_sparql(etd['abstract'])
             query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/abstract> \"{abstract}\" ."
         
         if 'department' in etd and etd['department']:
-            department = etd['department'].replace('"', '\\"')
+            department = escape_for_sparql(etd['department'])
             query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/department> \"{department}\" ."
         
         if 'university' in etd and etd['university']:
-            university = etd['university'].replace('"', '\\"')
+            university = escape_for_sparql(etd['university'])
             query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/university> \"{university}\" ."
         
         # Keywords as separate triples
         if 'keywords' in etd and etd['keywords']:
             for keyword in etd['keywords']:
                 if keyword:
-                    keyword = keyword.replace('"', '\\"')
+                    keyword = escape_for_sparql(keyword)
                     query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/keyword> \"{keyword}\" ."
     
     # Close the query - exactly two closing braces, no more
@@ -173,15 +200,21 @@ def load_batch(batch, batch_num=None):
             print(f"Processing batch {batch_num} with {count} ETDs...")
         
         query = create_insert_query(batch)
+        query_size = len(query.encode('utf-8'))
+        print(f"Batch {batch_num} query size: {query_size/1024:.2f} KB")
+        
         response = send_sparql_query(query)
         
         if response.status_code == 200:
+            print(f"Batch {batch_num} loaded successfully")
             return True, count
         else:
-            print(f"Error loading batch: {response.status_code} - {response.text}")
+            print(f"Error loading batch {batch_num}: {response.status_code} - {response.text[:500]}")
             return False, 0
     except Exception as e:
-        print(f"Exception in batch load: {str(e)}")
+        print(f"Exception in batch {batch_num}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False, 0
 
 def load_etds_from_json(json_file_path, max_batches=None, num_workers=4):
@@ -226,11 +259,12 @@ def load_etds_from_json(json_file_path, max_batches=None, num_workers=4):
         
         total_loaded = 0
         success_count = 0
+        failed_batches = []
         
         # Process batches in parallel
         print(f"Processing batches with {num_workers} parallel workers...")
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
-            # Create futures for each batch
+            
             futures = {executor.submit(load_batch, batch, i+1): i+1 for i, batch in enumerate(batches)}
             
             # Process as they complete
@@ -242,9 +276,12 @@ def load_etds_from_json(json_file_path, max_batches=None, num_workers=4):
                         if success:
                             success_count += 1
                             total_loaded += count
+                        else:
+                            failed_batches.append(batch_num)
                         progress.update(1)
                     except Exception as e:
                         print(f"Batch {batch_num} failed: {str(e)}")
+                        failed_batches.append(batch_num)
                         progress.update(1)
         
         # Calculate statistics
@@ -253,6 +290,10 @@ def load_etds_from_json(json_file_path, max_batches=None, num_workers=4):
         
         print(f"\nLoading completed in {elapsed_time:.2f} seconds")
         print(f"Successfully loaded {total_loaded} ETDs ({success_count}/{batches_processed} batches)")
+        
+        if failed_batches:
+            failed_batches.sort()
+            print(f"Failed batches: {failed_batches}")
         
         if elapsed_time > 0:
             print(f"Average rate: {total_loaded/elapsed_time:.2f} ETDs per second")
