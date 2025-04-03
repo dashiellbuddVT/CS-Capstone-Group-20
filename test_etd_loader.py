@@ -341,7 +341,7 @@ def main():
     
     if args.benchmark:
         # Run benchmark with multiple sizes
-        test_sizes = [10, 50, 100, 500, 1000]
+        test_sizes = [10, 100, 1000, 10000, 50000]
         results = benchmark(test_sizes, cleanup=cleanup)
         plot_results(results)
     else:
