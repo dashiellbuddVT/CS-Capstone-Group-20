@@ -13,62 +13,6 @@ username = "dba"
 password = "admin"
 batch_size = 100  # Reduced from 1000 to avoid 413 errors
 
-def check_insert_permissions():
-    """Check if we have permissions to insert data into the graph"""
-    print("Checking insert permissions...")
-    
-    # Try to insert a simple test triple
-    test_id = f"permission_test_{int(time.time())}"
-    test_uri = f"http://localhost:8890/test/{test_id}"
-    insert_query = f"""
-    INSERT DATA {{ 
-      GRAPH <{graph_URI}> {{ 
-        <{test_uri}> <http://localhost:8890/schemas/ETDs/test> "Permission test" . 
-      }}
-    }}
-    """
-    
-    try:
-        response = send_sparql_query(insert_query)
-        if response.status_code == 200:
-            print("Insert permission check: Success")
-            
-            # Verify the triple was actually inserted
-            check_query = f"""
-            SELECT ?o FROM <{graph_URI}>
-            WHERE {{ <{test_uri}> <http://localhost:8890/schemas/ETDs/test> ?o }}
-            """
-            verify_response = send_sparql_query(check_query)
-            
-            if verify_response.status_code == 200:
-                results = verify_response.json()
-                bindings = results.get("results", {}).get("bindings", [])
-                if bindings:
-                    print(f"Successfully verified inserted triple: {bindings[0].get('o', {}).get('value', '')}")
-                    
-                    # Clean up the test triple
-                    delete_query = f"""
-                    DELETE DATA {{ 
-                      GRAPH <{graph_URI}> {{ 
-                        <{test_uri}> <http://localhost:8890/schemas/ETDs/test> "Permission test" . 
-                      }}
-                    }}
-                    """
-                    send_sparql_query(delete_query)
-                    return True
-                else:
-                    print("WARNING: Insert query succeeded, but the triple was not found!")
-                    return False
-            else:
-                print(f"Failed to verify inserted triple: {verify_response.status_code}")
-                return False
-        else:
-            print(f"Insert permission check: Failed with status {response.status_code}")
-            return False
-    except Exception as e:
-        print(f"Insert permission check: Exception {str(e)}")
-        return False
-
 def send_sparql_query(query):
     """Send a SPARQL query to the Virtuoso endpoint"""
     
@@ -325,15 +269,6 @@ def main():
     if not os.path.exists(args.json_file):
         print(f"Error: JSON file not found: {args.json_file}")
         return False
-    
-    # Check insert permissions before proceeding
-    if not check_insert_permissions():
-        print("Failed permission check - you may not have write access to the database.")
-        if not args.force:
-            print("To attempt loading anyway, use the --force flag.")
-            return False
-        else:
-            print("Proceeding with load attempt despite permission check failure (--force flag used).")
     
     return load_etds_from_json(args.json_file, args.max_batches, args.workers)
 
