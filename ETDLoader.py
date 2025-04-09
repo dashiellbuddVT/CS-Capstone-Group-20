@@ -73,7 +73,7 @@ def create_insert_query(etds):
         etd_uri = f"http://localhost:8890/etd/{etd['id']}"
         
         # Helper function to properly escape text for SPARQL
-        def escape_for_sparql(text , replaceSpaces):
+        def escape_for_sparql(text):
             if not text:
                 return ""
             # Handle common escape sequences
@@ -83,41 +83,39 @@ def create_insert_query(etds):
             text = text.replace('\r', '\\r')
             text = text.replace('\t', '\\t')
 
-            if replaceSpaces:
-                text = text.replace(' ','-')
             # Remove other non-printable characters that could cause issues
             text = ''.join(c for c in text if c.isprintable() or c in ['\n', '\r', '\t'])
             return text
         
         # Safely escape and format the title
-        title = escape_for_sparql(etd['title'],False)
+        title = escape_for_sparql(etd['title'])
         query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/title> \"{title}\" ."
         
-        author = escape_for_sparql(etd['author'],False)
+        author = escape_for_sparql(etd['author'])
         query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/author> \"{author}\" ."
         
         query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/year> \"{etd['year']}\" ."
         
         # Add URI if available
         if 'URI' in etd and etd['URI']:
-            uri = escape_for_sparql(etd['URI'],False)
+            uri = escape_for_sparql(etd['URI'])
             query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/uri> \"{uri}\" ."
         
         # Additional metadata if available
         if 'abstract' in etd and etd['abstract']:
-            abstract = escape_for_sparql(etd['abstract'],False)
+            abstract = escape_for_sparql(etd['abstract'])
             query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/abstract> \"{abstract}\" ."
         
         if 'department' in etd and etd['department']:
-            department = escape_for_sparql(etd['department'],True)
+            department = escape_for_sparql(etd['department']).replace(' ','-')
             query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/department> <http://localhost:8890/department/{department}> ."
         
         if 'discipline' in etd and etd['discipline']:
-            discipline = escape_for_sparql(etd['discipline'],True)
+            discipline = escape_for_sparql(etd['discipline']).replace(' ','-')
             query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/discipline> <http://localhost:8890/discipline/{discipline}> ."
         
         if 'university' in etd and etd['university']:
-            university = escape_for_sparql(etd['university'],True)
+            university = escape_for_sparql(etd['university']).replace(' ','-')
             query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/university> <http://localhost:8890/university/{university}> ."
         
         # Keywords as separate triples
