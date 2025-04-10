@@ -5,7 +5,7 @@ import requests
 from requests.auth import HTTPDigestAuth
 
 # Add parent directory to path to import the ETDLoader module
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 try:
     from virtuoso.ETDLoader import send_sparql_query, graph_URI, username, password
@@ -43,12 +43,18 @@ def cleanup_by_prefix(id_prefix):
     FROM <{graph_URI}>
     WHERE {{
       ?s ?p ?o .
-      FILTER(REGEX(STR(?s), "http://erdkb.endeavour.cs.vt.edu/etd/{id_prefix}"))
+      FILTER(REGEX(STR(?s), "http://etdkb.endeavour.cs.vt.edu/v1/objects/{id_prefix}") || 
+             REGEX(STR(?s), "http://erdkb.endeavour.cs.vt.edu/etd/{id_prefix}"))
     }}
     """
     
+    print(f"Query: {delete_query}")
+    
     try:
         response = send_sparql_query(delete_query)
+        
+        print(f"Response status: {response.status_code}")
+        print(f"Response content: {response.text[:200]}")
         
         if response.status_code == 200:
             print(f"Successfully cleaned up data with ID prefix '{id_prefix}'")
