@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 # Configuration
 endpoint_URL = "https://virtuoso.endeavour.cs.vt.edu/sparql-auth"
-graph_URI = "http://localhost:8890/ETDs"
+graph_URI = "http://erdkb.endeavour.cs.vt.edu/ETDs"
 username = "dba"
 password = "admin"
 batch_size = 100  # Reduced from 1000 to avoid 413 errors
@@ -20,7 +20,7 @@ def send_sparql_query(query):
     debug_query = query
     # If query contains abstract, truncate it for display
     if "abstract" in debug_query:
-        abstract_start = debug_query.find("<http://localhost:8890/schemas/ETDs/abstract>")
+        abstract_start = debug_query.find("<http://erdkb.endeavour.cs.vt.edu/r/abstract>")
         if abstract_start > 0:
             abstract_end = debug_query.find(".", abstract_start)
             if abstract_end > abstract_start:
@@ -70,7 +70,7 @@ def create_insert_query(etds):
     
     for etd in etds:
         # URI for the ETD
-        etd_uri = f"http://localhost:8890/etd/{etd['id']}"
+        etd_uri = f"http://erdkb.endeavour.cs.vt.edu/etd/{etd['id']}"
         
         # Helper function to properly escape text for SPARQL
         def escape_for_sparql(text):
@@ -89,41 +89,41 @@ def create_insert_query(etds):
         
         # Safely escape and format the title
         title = escape_for_sparql(etd['title'])
-        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/title> \"{title}\" ."
+        query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/title> \"{title}\" ."
         
         author = escape_for_sparql(etd['author'])
-        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/author> \"{author}\" ."
+        query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/author> \"{author}\" ."
         
-        query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/year> \"{etd['year']}\" ."
+        query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/year> \"{etd['year']}\" ."
         
         # Add URI if available
         if 'URI' in etd and etd['URI']:
             uri = escape_for_sparql(etd['URI'])
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/uri> \"{uri}\" ."
+            query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/uri> \"{uri}\" ."
         
         # Additional metadata if available
         if 'abstract' in etd and etd['abstract']:
             abstract = escape_for_sparql(etd['abstract'])
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/abstract> \"{abstract}\" ."
+            query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/abstract> \"{abstract}\" ."
         
         if 'department' in etd and etd['department']:
             department = escape_for_sparql(etd['department']).replace(' ','-')
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/department> <http://localhost:8890/department/{department}> ."
+            query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/department> <http://erdkb.endeavour.cs.vt.edu/department/{department}> ."
         
         if 'discipline' in etd and etd['discipline']:
             discipline = escape_for_sparql(etd['discipline']).replace(' ','-')
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/discipline> <http://localhost:8890/discipline/{discipline}> ."
+            query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/discipline> <http://erdkb.endeavour.cs.vt.edu/discipline/{discipline}> ."
         
         if 'university' in etd and etd['university']:
             university = escape_for_sparql(etd['university']).replace(' ','-')
-            query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/university> <http://localhost:8890/university/{university}> ."
+            query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/university> <http://erdkb.endeavour.cs.vt.edu/university/{university}> ."
         
         # Keywords as separate triples
         if 'keywords' in etd and etd['keywords']:
             for keyword in etd['keywords']:
                 if keyword:
-                    keyword = escape_for_sparql(keyword,False)
-                    query += f"\n<{etd_uri}> <http://localhost:8890/schemas/ETDs/keyword> \"{keyword}\" ."
+                    keyword = escape_for_sparql(keyword)
+                    query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/keyword> \"{keyword}\" ."
     
     # Close the query - exactly two closing braces, no more
     query += "\n}}"

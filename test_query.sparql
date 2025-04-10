@@ -1,0 +1,5 @@
+SELECT ?etd ?title
+WHERE {
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/title> ?title
+}
+LIMIT 10 

@@ -70,7 +70,7 @@ def cleanup_test_data(id_prefix="test"):
     FROM <{graph_URI}>
     WHERE {{
       ?s ?p ?o .
-      FILTER(REGEX(STR(?s), "http://localhost:8890/etd/{id_prefix}"))
+      FILTER(REGEX(STR(?s), "http://erdkb.endeavour.cs.vt.edu/etd/{id_prefix}"))
     }}
     """
     
@@ -205,7 +205,7 @@ def check_etd_exists(etd_id):
     print(f"\nChecking if ETD with ID '{etd_id}' exists...")
     
     # Query for the specific ETD by ID
-    etd_uri = f"http://localhost:8890/etd/{etd_id}"
+    etd_uri = f"http://erdkb.endeavour.cs.vt.edu/etd/{etd_id}"
     query = f"""
     SELECT ?p ?o FROM <{graph_URI}>
     WHERE {{
