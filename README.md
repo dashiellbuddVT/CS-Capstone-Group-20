@@ -24,8 +24,13 @@ python3 ETDQueries.py
 ```
 
 #### Loading ETDs (Note: Database is Read-Only)
+- Virtuoso
 ```bash
 python3 ETDLoader.py 
+```
+- Neo4j
+```bash
+python CSVtoJSON.py Test_ETD.csv --out_file output_file.json
 ```
 
 #### Testing ETD Loader
