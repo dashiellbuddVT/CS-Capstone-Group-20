@@ -69,8 +69,8 @@ def create_insert_query(etds):
     query = f"INSERT DATA {{ GRAPH <{graph_URI}> {{"
     
     for etd in etds:
-        # URI for the ETD
-        etd_uri = f"http://erdkb.endeavour.cs.vt.edu/etd/{etd['id']}"
+        # URI for the ETD - use format that follows the web server route structure
+        etd_uri = f"http://etdkb.endeavour.cs.vt.edu/v1/objects/{etd['id']}"
         
         # Helper function to properly escape text for SPARQL
         def escape_for_sparql(text):
@@ -87,43 +87,68 @@ def create_insert_query(etds):
             text = ''.join(c for c in text if c.isprintable() or c in ['\n', '\r', '\t'])
             return text
         
+        # Set up predicates with the proper URL format
+        title_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasTitle"
+        author_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasAuthor"
+        year_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/issuedDate"
+        uri_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/identifier"
+        abstract_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasAbstract"
+        department_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/academicDiscipline"
+        discipline_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/academicDiscipline"
+        university_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/publishedBy"
+        keyword_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasKeyword"
+        hasAuthor_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasAuthor"
+        hasChapter_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasPart"
+        
         # Safely escape and format the title
         title = escape_for_sparql(etd['title'])
-        query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/title> \"{title}\" ."
+        query += f"\n<{etd_uri}> <{title_predicate}> \"{title}\" ."
         
         author = escape_for_sparql(etd['author'])
-        query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/author> \"{author}\" ."
+        query += f"\n<{etd_uri}> <{author_predicate}> \"{author}\" ."
+        # Add author as object reference too
+        author_obj = f"http://etdkb.endeavour.cs.vt.edu/v1/objects/author{etd['id']}"
+        query += f"\n<{etd_uri}> <{hasAuthor_predicate}> <{author_obj}> ."
         
-        query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/year> \"{etd['year']}\" ."
+        query += f"\n<{etd_uri}> <{year_predicate}> \"{etd['year']}\" ."
         
         # Add URI if available
         if 'URI' in etd and etd['URI']:
             uri = escape_for_sparql(etd['URI'])
-            query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/uri> \"{uri}\" ."
+            query += f"\n<{etd_uri}> <{uri_predicate}> \"{uri}\" ."
         
         # Additional metadata if available
         if 'abstract' in etd and etd['abstract']:
             abstract = escape_for_sparql(etd['abstract'])
-            query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/abstract> \"{abstract}\" ."
+            query += f"\n<{etd_uri}> <{abstract_predicate}> \"{abstract}\" ."
         
         if 'department' in etd and etd['department']:
             department = escape_for_sparql(etd['department']).replace(' ','-')
-            query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/department> <http://erdkb.endeavour.cs.vt.edu/department/{department}> ."
+            department_obj = f"http://etdkb.endeavour.cs.vt.edu/v1/objects/{department}"
+            query += f"\n<{etd_uri}> <{department_predicate}> \"{department}\" ."
+            query += f"\n<{etd_uri}> <{hasChapter_predicate}> <{department_obj}> ."
         
         if 'discipline' in etd and etd['discipline']:
             discipline = escape_for_sparql(etd['discipline']).replace(' ','-')
-            query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/discipline> <http://erdkb.endeavour.cs.vt.edu/discipline/{discipline}> ."
+            discipline_obj = f"http://etdkb.endeavour.cs.vt.edu/v1/objects/{discipline}"
+            query += f"\n<{etd_uri}> <{discipline_predicate}> \"{discipline}\" ."
+            query += f"\n<{etd_uri}> <{hasChapter_predicate}> <{discipline_obj}> ."
         
         if 'university' in etd and etd['university']:
             university = escape_for_sparql(etd['university']).replace(' ','-')
-            query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/university> <http://erdkb.endeavour.cs.vt.edu/university/{university}> ."
+            university_obj = f"http://etdkb.endeavour.cs.vt.edu/v1/objects/{university}"
+            query += f"\n<{etd_uri}> <{university_predicate}> \"{university}\" ."
+            query += f"\n<{etd_uri}> <{hasChapter_predicate}> <{university_obj}> ."
         
         # Keywords as separate triples
         if 'keywords' in etd and etd['keywords']:
-            for keyword in etd['keywords']:
+            for i, keyword in enumerate(etd['keywords']):
                 if keyword:
                     keyword = escape_for_sparql(keyword)
-                    query += f"\n<{etd_uri}> <http://erdkb.endeavour.cs.vt.edu/r/keyword> \"{keyword}\" ."
+                    query += f"\n<{etd_uri}> <{keyword_predicate}> \"{keyword}\" ."
+                    # Add keyword as object reference too
+                    keyword_obj = f"http://etdkb.endeavour.cs.vt.edu/v1/objects/{keyword.replace(' ', '-')}"
+                    query += f"\n<{etd_uri}> <{hasChapter_predicate}> <{keyword_obj}> ."
     
     # Close the query - exactly two closing braces, no more
     query += "\n}}"

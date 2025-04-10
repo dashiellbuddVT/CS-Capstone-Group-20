@@ -1,0 +1,11 @@
+# Query to check triples in the database using the web server route format
+# This query will check for objects that should appear as links in the UI
+SELECT DISTINCT ?subject ?predicate ?object
+WHERE {
+  ?subject ?predicate ?object .
+  FILTER(ISIRI(?object))
+  FILTER(CONTAINS(STR(?predicate), "etdkb.endeavour.cs.vt.edu/v1/predicate"))
+  FILTER(CONTAINS(STR(?object), "etdkb.endeavour.cs.vt.edu/v1/objects"))
+}
+ORDER BY ?subject ?predicate
+LIMIT 50 

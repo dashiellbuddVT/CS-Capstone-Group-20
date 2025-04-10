@@ -1,0 +1,80 @@
+# 1. Basic query to list ETDs and their titles
+SELECT ?etd ?title 
+WHERE {
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/title> ?title .
+}
+LIMIT 10
+
+# 2. ETD titles with authors
+SELECT ?etd ?title ?author
+WHERE {
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/title> ?title .
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/author> ?author .
+}
+LIMIT 10
+
+# 3. ETDs with complete metadata
+SELECT ?etd ?title ?author ?year ?abstract
+WHERE {
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/title> ?title .
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/author> ?author .
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/year> ?year .
+  OPTIONAL { ?etd <http://erdkb.endeavour.cs.vt.edu/r/abstract> ?abstract . }
+}
+LIMIT 5
+
+# 4. Find ETDs by keyword in title (example: "Learning")
+SELECT ?etd ?title
+WHERE {
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/title> ?title .
+  FILTER(CONTAINS(LCASE(?title), "learning"))
+}
+LIMIT 10
+
+# 5. Find ETDs by year
+SELECT ?etd ?title ?year
+WHERE {
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/title> ?title .
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/year> ?year .
+  FILTER(?year = "2022")
+}
+LIMIT 10
+
+# 6. List all distinct departments
+SELECT DISTINCT ?department
+WHERE {
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/department> ?department .
+}
+ORDER BY ?department
+
+# 7. List all properties used in the dataset
+SELECT DISTINCT ?property
+WHERE {
+  ?s ?property ?o .
+}
+ORDER BY ?property
+
+# 8. Count ETDs per year
+SELECT ?year (COUNT(?etd) AS ?count)
+WHERE {
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/year> ?year .
+}
+GROUP BY ?year
+ORDER BY DESC(?year)
+
+# 9. Find ETDs with external URIs
+SELECT ?etd ?title ?uri
+WHERE {
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/title> ?title .
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/uri> ?uri .
+}
+LIMIT 10
+
+# 10. Find ETDs containing specific keywords
+SELECT ?etd ?title ?keyword
+WHERE {
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/title> ?title .
+  ?etd <http://erdkb.endeavour.cs.vt.edu/r/keyword> ?keyword .
+  FILTER(CONTAINS(LCASE(?keyword), "ai") || CONTAINS(LCASE(?keyword), "machine learning"))
+}
+LIMIT 10 

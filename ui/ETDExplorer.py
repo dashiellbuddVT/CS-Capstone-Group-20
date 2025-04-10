@@ -1,8 +1,13 @@
 from tkinter import *
 import tkinter.ttk as ttk
 import webbrowser
-from ETDQueries import get_etd_titles, get_etd_link, get_etd_metadata
-from ETDQueries import search_etds_by_keyword, get_etds_by_year, get_etd_count
+import os
+import sys
+
+# Add parent directory to path to import modules correctly
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from virtuoso.ETDQueries import get_etd_titles, get_etd_link, get_etd_metadata
+from virtuoso.ETDQueries import search_etds_by_keyword, get_etds_by_year, get_etd_count
 
 # Root window
 root = Tk()

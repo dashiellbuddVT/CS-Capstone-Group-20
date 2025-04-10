@@ -2,12 +2,16 @@ import os
 import json
 import time
 import random
+import sys
 from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
-from ETDLoader import load_etds_from_json as sparql_load
-from ETDLoader import send_sparql_query, graph_URI
-from ETDQueries import get_etd_count
+
+# Add parent directory to path to import modules correctly
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from virtuoso.ETDLoader import load_etds_from_json as sparql_load
+from virtuoso.ETDLoader import send_sparql_query, graph_URI
+from virtuoso.ETDQueries import get_etd_count
 
 def generate_test_data(num_etds=100, output_file="test_etds.json", id_prefix="test"):
     """Generate test ETD data for benchmarking"""
@@ -38,7 +42,7 @@ def generate_test_data(num_etds=100, output_file="test_etds.json", id_prefix="te
         
         etd = {
             "id": f"{id_prefix}{i}",
-            "uri": f"https://example.com/etd/{id_prefix}{i}",
+            "URI": f"https://example.com/etd/{id_prefix}{i}",
             "title": f"Test ETD {i}: A Study of {topic} in {department}",
             "author": author,
             "university": random.choice(universities),

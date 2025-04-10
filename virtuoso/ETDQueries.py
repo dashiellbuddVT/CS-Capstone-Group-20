@@ -27,7 +27,7 @@ def get_etd_titles(limit=100):
     """Get ETD titles with limit"""
     query = f"""
     SELECT * FROM <{graph_URI}>
-    WHERE {{?s <http://erdkb.endeavour.cs.vt.edu/r/title> ?o}}
+    WHERE {{?s <http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasTitle> ?o}}
     LIMIT {limit}
     """
     response = send_query(query)
@@ -42,7 +42,7 @@ def get_etd_link(iri):
     """Get link for an ETD by IRI"""
     query = f"""
     SELECT * FROM <{graph_URI}>
-    WHERE {{<{iri}> <http://erdkb.endeavour.cs.vt.edu/r/uri> ?o}}
+    WHERE {{<{iri}> <http://etdkb.endeavour.cs.vt.edu/v1/predicate/identifier> ?o}}
     LIMIT 1
     """
     response = send_query(query)
@@ -50,7 +50,10 @@ def get_etd_link(iri):
     if response.status_code == 200 and response.json()["results"]["bindings"]:
         link = response.json()["results"]["bindings"][0]["o"]["value"]
         return link
-    return None
+    
+    # If no URI is found, return the IRI itself as the link
+    # This should work since our IRIs now match the web server routes
+    return iri
 
 def get_etd_metadata(iri):
     """Get all metadata for an ETD by IRI"""
@@ -69,7 +72,7 @@ def get_etd_metadata(iri):
     metadata = []
     
     for attribute in bindings:
-        prop = attribute["p"]["value"].replace("http://erdkb.endeavour.cs.vt.edu/r/", "")
+        prop = attribute["p"]["value"].replace("http://etdkb.endeavour.cs.vt.edu/v1/predicate/", "")
         value = attribute["o"]["value"]
         metadata.append(f"{prop}: {value}")
     
@@ -80,7 +83,7 @@ def search_etds_by_keyword(keyword, limit=100):
     query = f"""
     SELECT DISTINCT ?s ?title FROM <{graph_URI}>
     WHERE {{
-        ?s <http://erdkb.endeavour.cs.vt.edu/r/title> ?title .
+        ?s <http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasTitle> ?title .
         FILTER(CONTAINS(LCASE(?title), LCASE("{keyword}")))
     }}
     LIMIT {limit}
@@ -98,8 +101,8 @@ def get_etds_by_year(year, limit=100):
     query = f"""
     SELECT ?s ?title FROM <{graph_URI}>
     WHERE {{
-        ?s <http://erdkb.endeavour.cs.vt.edu/r/year> "{year}" .
-        ?s <http://erdkb.endeavour.cs.vt.edu/r/title> ?title .
+        ?s <http://etdkb.endeavour.cs.vt.edu/v1/predicate/issuedDate> "{year}" .
+        ?s <http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasTitle> ?title .
     }}
     LIMIT {limit}
     """
@@ -116,7 +119,7 @@ def get_etd_count():
     query = f"""
     SELECT (COUNT(DISTINCT ?s) as ?count) FROM <{graph_URI}>
     WHERE {{
-        ?s <http://erdkb.endeavour.cs.vt.edu/r/title> ?title .
+        ?s <http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasTitle> ?title .
     }}
     """
     response = send_query(query)
