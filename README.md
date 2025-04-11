@@ -16,7 +16,7 @@ This repository contains tools for working with Electronic Theses and Dissertati
 - **Read-Only Virtuoso Setup**: The Virtuoso database appears to be configured in read-only mode for the provided credentials. While SPARQL INSERT queries receive a 200 OK response, the data is not actually persisted in the database.
 - **ETDLoader.py** includes a permission check function that verifies whether write operations are being stored.
   - To fix this when running local Neo4j database: click three dots next to acgive DBSM > Settings > Change below line to match
-  - ![Diagram](images/Neo4j_Auth_Settings.png)
+  - ![Diagram](Neo4j_Auth_Settings.png)
 
 ### Usage
 
