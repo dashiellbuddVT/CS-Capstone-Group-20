@@ -8,7 +8,7 @@ from requests.auth import HTTPDigestAuth
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 try:
-    from virtuoso.ETDLoader import send_sparql_query, graph_URI, username, password
+    from virtuoso.ETDLoader import send_sparql_query, graph_URI, username, password, endpoint_URL
 except ImportError:
     # Fallback if virtuoso module is not found
     print("Warning: Could not import from virtuoso.ETDLoader - using default settings")
@@ -31,49 +31,15 @@ except ImportError:
         )
         return response
 
-def cleanup_by_prefix(id_prefix):
-    """Delete ETDs from the database based on their ID prefix"""
-    print(f"\nCleaning up data with ID prefix '{id_prefix}'...")
+def clear_all_graph_data(force=False):
+    """Clear all data from the graph"""
+    print(f"\nClearing ALL data from the graph {graph_URI}")
     
-    # SPARQL query to delete all triples related to ETDs with the given prefix
-    delete_query = f"""
-    DELETE {{
-      ?s ?p ?o .
-    }}
-    FROM <{graph_URI}>
-    WHERE {{
-      ?s ?p ?o .
-      FILTER(REGEX(STR(?s), "http://etdkb.endeavour.cs.vt.edu/v1/objects/{id_prefix}") || 
-             REGEX(STR(?s), "http://erdkb.endeavour.cs.vt.edu/etd/{id_prefix}"))
-    }}
-    """
-    
-    print(f"Query: {delete_query}")
-    
-    try:
-        response = send_sparql_query(delete_query)
-        
-        print(f"Response status: {response.status_code}")
-        print(f"Response content: {response.text[:200]}")
-        
-        if response.status_code == 200:
-            print(f"Successfully cleaned up data with ID prefix '{id_prefix}'")
-            return True
-        else:
-            print(f"Error cleaning up data: {response.status_code} - {response.text[:200]}")
+    if not force:
+        confirm = input("Are you sure you want to continue? (yes/no): ")
+        if confirm.lower() != 'yes':
+            print("Operation cancelled")
             return False
-    except Exception as e:
-        print(f"Exception during cleanup: {str(e)}")
-        return False
-
-def clear_all_graph_data():
-    """Clear all data from the graph (use with extreme caution)"""
-    print(f"\nWARNING: You are about to clear ALL data from the graph {graph_URI}")
-    confirm = input("Are you sure you want to continue? (yes/no): ")
-    
-    if confirm.lower() != 'yes':
-        print("Operation cancelled")
-        return False
     
     try:
         # SPARQL query to clear the entire graph
@@ -90,36 +56,55 @@ def clear_all_graph_data():
         print(f"Exception clearing graph: {str(e)}")
         return False
 
+def cleanup_specific_predicate(predicate):
+    """Delete all relationships with a specific predicate"""
+    print(f"\nCleaning up all relationships with predicate '{predicate}'...")
+    
+    # SPARQL query to delete all relationships with the given predicate
+    delete_query = f"""
+    DELETE {{
+      ?s <{predicate}> ?o .
+    }}
+    FROM <{graph_URI}>
+    WHERE {{
+      ?s <{predicate}> ?o .
+    }}
+    """
+    
+    print(f"Query: {delete_query}")
+    
+    try:
+        response = send_sparql_query(delete_query)
+        
+        print(f"Response status: {response.status_code}")
+        print(f"Response content: {response.text[:200]}")
+        
+        if response.status_code == 200:
+            print(f"Successfully cleaned up all relationships with predicate '{predicate}'")
+            return True
+        else:
+            print(f"Error cleaning up relationships: {response.status_code} - {response.text[:200]}")
+            return False
+    except Exception as e:
+        print(f"Exception during cleanup: {str(e)}")
+        return False
+
 def main():
     """
-    Clean up ETD data from the database by specifying an ID prefix
+    Clean up ETD data from the database
     """
     parser = argparse.ArgumentParser(description='Clean up ETD data from the database')
-    parser.add_argument('--prefix', type=str, default='test', 
-                        help='ID prefix of ETDs to delete (default: "test")')
-    parser.add_argument('--all', action='store_true',
-                        help='Delete all test data including benchmark data (bench prefix)')
-    parser.add_argument('--clear-graph', action='store_true',
-                        help='Clear the entire graph (DANGER: removes ALL data)')
+    parser.add_argument('--force', action='store_true',
+                        help='Clear all data without confirmation')
+    parser.add_argument('--predicate', type=str,
+                        help='Clear only relationships with a specific predicate')
     
     args = parser.parse_args()
     
-    if args.clear_graph:
-        success = clear_all_graph_data()
-        return success
-    
-    if args.all:
-        # Clean up all test data
-        print("Cleaning up all test data...")
-        prefixes = ['test', 'bench', 'etd']
-        success = True
-        for prefix in prefixes:
-            if not cleanup_by_prefix(prefix):
-                success = False
-        return success
+    if args.predicate:
+        return cleanup_specific_predicate(args.predicate)
     else:
-        # Clean up data with specified prefix
-        return cleanup_by_prefix(args.prefix)
+        return clear_all_graph_data(force=args.force)
 
 if __name__ == "__main__":
     success = main()
