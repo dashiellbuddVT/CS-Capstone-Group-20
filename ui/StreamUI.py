@@ -1,5 +1,10 @@
 import streamlit as st
 import webbrowser
+import sys
+import os
+
+# Add the parent directory to sys.path to find virtuoso package
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from virtuoso.ETDQueries import (
     get_etd_titles, get_etd_link, get_etd_metadata,
