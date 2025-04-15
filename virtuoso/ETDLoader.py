@@ -89,7 +89,7 @@ def create_insert_query(etds):
         
         # Set up predicates with the proper URL format
         title_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasTitle"
-        author_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasAuthor"
+        author_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/Author"
         year_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/issuedDate"
         uri_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/identifier"
         abstract_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasAbstract"
@@ -125,20 +125,17 @@ def create_insert_query(etds):
         if 'department' in etd and etd['department']:
             department = escape_for_sparql(etd['department']).replace(' ','-')
             department_obj = f"http://etdkb.endeavour.cs.vt.edu/v1/objects/{department}"
-            query += f"\n<{etd_uri}> <{department_predicate}> \"{department}\" ."
-            query += f"\n<{etd_uri}> <{hasChapter_predicate}> <{department_obj}> ."
+            query += f"\n<{etd_uri}> <{department_predicate}> <{department_obj}> ."
         
         if 'discipline' in etd and etd['discipline']:
             discipline = escape_for_sparql(etd['discipline']).replace(' ','-')
             discipline_obj = f"http://etdkb.endeavour.cs.vt.edu/v1/objects/{discipline}"
-            query += f"\n<{etd_uri}> <{discipline_predicate}> \"{discipline}\" ."
-            query += f"\n<{etd_uri}> <{hasChapter_predicate}> <{discipline_obj}> ."
+            query += f"\n<{etd_uri}> <{discipline_predicate}> <{discipline_obj}> ."
         
         if 'university' in etd and etd['university']:
             university = escape_for_sparql(etd['university']).replace(' ','-')
             university_obj = f"http://etdkb.endeavour.cs.vt.edu/v1/objects/{university}"
-            query += f"\n<{etd_uri}> <{university_predicate}> \"{university}\" ."
-            query += f"\n<{etd_uri}> <{hasChapter_predicate}> <{university_obj}> ."
+            query += f"\n<{etd_uri}> <{university_predicate}> <{university_obj}> ."
         
         # Keywords as separate triples
         if 'keywords' in etd and etd['keywords']:

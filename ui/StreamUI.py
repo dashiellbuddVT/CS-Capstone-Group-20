@@ -129,7 +129,7 @@ if st.session_state.results:
 
     selected_title = st.radio(
         "",
-        st.session_state.results,
+        st.session_state.results if isinstance(st.session_state.results,list) else list(st.session_state.results),
         key="etd_radio_select",
         label_visibility="collapsed",
         index=st.session_state.get("selected_index", 0)
@@ -157,9 +157,17 @@ if st.session_state.results:
             st.markdown("🔗 No link available.")
 
         if metadata:
+            mdDict = {}
             for item in metadata:
                 key, val = item.split(":", 1) if ":" in item else ("Info", item)
-                st.markdown(f"**{key.strip()}**: {val.strip()}")
+                mdDict[key] = val
+
+            st.markdown(f"Title: {mdDict['hasTitle'].strip()}")
+            st.markdown(f"Author: {mdDict['Author'].strip()}")
+            st.markdown(f"Year: {mdDict['issuedDate'].strip()}")
+            school = os.path.basename(mdDict['publishedBy'].strip()).replace('-','')
+            st.markdown(f"Institution: {school}")
+            st.markdown(f"Abstract: {mdDict['hasAbstract'].strip()}")
         else:
             st.info("No metadata found for this ETD.")
     except Exception as e:
