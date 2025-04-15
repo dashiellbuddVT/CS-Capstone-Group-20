@@ -11,6 +11,8 @@ from virtuoso.ETDQueries import (
     search_etds_by_keyword, get_etds_by_year, get_etd_count
 )
 
+
+
 st.set_page_config(page_title="ETD Explorer", layout="wide")
 
 st.title("ETD Explorer")
@@ -27,81 +29,138 @@ if "metadata" not in st.session_state:
 count = get_etd_count()
 st.info(f"📊 Database contains {count} ETDs")
 
-# Sidebar inputs
-st.sidebar.header("Search Options")
+# Add this once at the top
+st.markdown("""
+    <style>
+        .row-widget.stRadio{
+            max-height: 200px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding-left: 10px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
-limit = st.sidebar.number_input("Limit", min_value=1, max_value=1000, value=100)
+# ========== 🔍 Clean, Aligned Top Bar ==========
+top_bar = st.columns([2,2,2] , vertical_alignment="bottom")
 
-if st.sidebar.button("🔍 Find ETDs"):
-    st.session_state.results.clear()
-    st.session_state.iris.clear()
-    try:
-        results = get_etd_titles(limit)
-        for result in results:
-            st.session_state.iris.append(result["s"]["value"])
-            st.session_state.results.append(result["o"]["value"])
-        st.success(f"Found {len(results)} ETDs")
-    except Exception as e:
-        st.error(f"Error retrieving ETDs: {e}")
+with top_bar[0]:
+    with st.form(key="limit_form", clear_on_submit=False):
+        limit = st.number_input("Limit", min_value=1, max_value=1000, value=100)
+        submitted_limit = st.form_submit_button("📥 Find ETDs")
 
-# Keyword Search
-keyword = st.sidebar.text_input("Search by Keyword")
-if st.sidebar.button("🔎 Search by Keyword"):
-    st.session_state.results.clear()
-    st.session_state.iris.clear()
-    try:
-        results = search_etds_by_keyword(keyword)
-        for result in results:
-            st.session_state.iris.append(result["s"]["value"])
-            st.session_state.results.append(result["title"]["value"])
-        st.success(f"Found {len(results)} ETDs matching '{keyword}'")
-    except Exception as e:
-        st.error(f"Error: {e}")
+        if submitted_limit:
+            try:
+                results = get_etd_titles(limit)
+                st.session_state.results = [r["o"]["value"] for r in results]
+                st.session_state.iris = [r["s"]["value"] for r in results]
+            except Exception as e:
+                st.error(f"Error: {e}")
 
-# Year Search
-year = st.sidebar.text_input("Search by Year")
-if st.sidebar.button("📅 Search by Year"):
-    st.session_state.results.clear()
-    st.session_state.iris.clear()
-    try:
-        results = get_etds_by_year(year)
-        for result in results:
-            st.session_state.iris.append(result["s"]["value"])
-            st.session_state.results.append(result["title"]["value"])
-        st.success(f"Found {len(results)} ETDs from year {year}")
-    except Exception as e:
-        st.error(f"Error: {e}")
+with top_bar[1]:
+    with st.form(key="keyword_form", clear_on_submit=False):
+        keyword = st.text_input("Keyword")
+        submitted_keyword = st.form_submit_button("🔎 Search")
 
-# Display ETD results
-st.subheader("ETD Results")
+        if submitted_keyword:
+            try:
+                results = search_etds_by_keyword(keyword)
+                st.session_state.results = [r["title"]["value"] for r in results]
+                st.session_state.iris = [r["s"]["value"] for r in results]
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+
+with top_bar[2]:
+    with st.form(key="year_form", clear_on_submit=False):
+        year = st.text_input("Year")
+        submitted_year = st.form_submit_button("📅 Search")
+
+        if submitted_year:
+            try:
+                results = get_etds_by_year(year)
+                st.session_state.results = [r["title"]["value"] for r in results]
+                st.session_state.iris = [r["s"]["value"] for r in results]
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+
+
+
+# ========== 📄 Results (Simulated Scrollable) ==========
+st.markdown(
+    "<h3 style='margin-bottom: 0.2rem; margin-top: 0;'>Results</h3>",
+    unsafe_allow_html=True
+)
 
 if st.session_state.results:
-    selected_index = st.selectbox("Select an ETD", range(len(st.session_state.results)), 
-                                  format_func=lambda i: st.session_state.results[i])
-    
-    if st.button("🔗 Open ETD Link"):
-        iri = st.session_state.iris[selected_index]
-        link = get_etd_link(iri)
-        if link:
-            st.markdown(f"[Open ETD in Browser]({link})", unsafe_allow_html=True)
-        else:
-            st.warning("No link available.")
 
-    if st.button("📄 Show Metadata"):
-        iri = st.session_state.iris[selected_index]
-        try:
-            metadata = get_etd_metadata(iri)
-            if metadata:
-                st.session_state.metadata = metadata
-            else:
-                st.warning("No metadata found.")
-        except Exception as e:
-            st.error(f"Error retrieving metadata: {e}")
+    # Scrollable radio list using custom CSS
+    st.markdown("""
+        <style>
+        /* Scrollable container for the radio buttons */
+        div[data-testid="stRadio"] > div {
+            max-height: 300px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            border: 1px solid #ddd;
+            padding-left: 10px;
+            padding-right: 10px;
+            display: block !important;
+        }
 
-    # Display metadata
-    if st.session_state.metadata:
-        st.subheader("Metadata")
-        for item in st.session_state.metadata:
-            st.text(item)
+        /* Each radio option in its own row with aligned button + label */
+        div[data-testid="stRadio"] label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.3rem;
+            white-space: normal !important;
+            word-break: break-word;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+
+    st.markdown(
+        f"<p style='font-size: 0.85rem; color: gray; margin: 0;'>Showing {len(st.session_state.results)} results</p>",
+        unsafe_allow_html=True
+    )
+
+    selected_title = st.radio(
+        "",
+        st.session_state.results,
+        key="etd_radio_select",
+        label_visibility="collapsed",
+        index=st.session_state.get("selected_index", 0)
+    )
+
+    # Store the selected index
+    st.session_state.selected_index = st.session_state.results.index(selected_title)
 else:
-    st.write("No ETD results to display.")
+    st.info("No ETDs to display. Use the search controls above to get started.")
+
+# ========== 🧾 Metadata ==========
+st.subheader("Metadata")
+
+if st.session_state.results:
+    selected_index = st.session_state.get("selected_index", 0)
+    iri = st.session_state.iris[selected_index]
+
+    try:
+        metadata = get_etd_metadata(iri)
+        link = get_etd_link(iri)
+
+        if link:
+            st.markdown(f"🔗 [Open ETD in Browser]({link})", unsafe_allow_html=True)
+        else:
+            st.markdown("🔗 No link available.")
+
+        if metadata:
+            for item in metadata:
+                key, val = item.split(":", 1) if ":" in item else ("Info", item)
+                st.markdown(f"**{key.strip()}**: {val.strip()}")
+        else:
+            st.info("No metadata found for this ETD.")
+    except Exception as e:
+        st.error(f"Error retrieving metadata: {e}")
