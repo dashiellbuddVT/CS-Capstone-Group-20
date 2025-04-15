@@ -3,175 +3,122 @@ import webbrowser
 import sys
 import os
 
-# Add the parent directory to sys.path to find virtuoso package
+# Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from virtuoso.ETDQueries import (
-    get_etd_titles, get_etd_link, get_etd_metadata,
-    search_etds_by_keyword, get_etds_by_year, get_etd_count
-)
+# Backend modules
+import virtuoso.ETDQueries as virtuoso_backend
+import Neo4jaccess as neo4j_backend
 
+# Backend selector
+BACKENDS = {
+    "Virtuoso": virtuoso_backend,
+    "Neo4j": neo4j_backend
+}
 
+# Session state for backend
+if "backend_name" not in st.session_state:
+    st.session_state.backend_name = "Virtuoso"
+if "backend" not in st.session_state:
+    st.session_state.backend = BACKENDS[st.session_state.backend_name]
 
+# Page setup
 st.set_page_config(page_title="ETD Explorer", layout="wide")
-
 st.title("ETD Explorer")
 
-# Initialize session state
-if "results" not in st.session_state:
+# 🧠 BACKEND SWITCHER
+selected_backend = st.selectbox("Select Backend", list(BACKENDS.keys()), index=list(BACKENDS.keys()).index(st.session_state.backend_name))
+if selected_backend != st.session_state.backend_name:
+    st.session_state.backend_name = selected_backend
+    st.session_state.backend = BACKENDS[selected_backend]
     st.session_state.results = []
-if "iris" not in st.session_state:
     st.session_state.iris = []
-if "metadata" not in st.session_state:
     st.session_state.metadata = []
+    st.session_state.selected_index = 0
+    st.experimental_rerun()
 
-# Display ETD count
-count = get_etd_count()
-st.info(f"📊 Database contains {count} ETDs")
+backend = st.session_state.backend
 
-# Add this once at the top
-st.markdown("""
-    <style>
-        .row-widget.stRadio{
-            max-height: 200px;
-            overflow-y: scroll;
-            border: 1px solid #ccc;
-            padding-left: 10px;
-        }
-    </style>
-    """, unsafe_allow_html=True)
+# Session state init
+for key in ["results", "iris", "metadata", "selected_index"]:
+    if key not in st.session_state:
+        st.session_state[key] = [] if key != "selected_index" else 0
 
-# ========== 🔍 Clean, Aligned Top Bar ==========
-top_bar = st.columns([2,2,2] , vertical_alignment="bottom")
+# ETD Count
+try:
+    count = backend.get_etd_count()
+    st.info(f"📊 {selected_backend} contains {count} ETDs")
+except Exception as e:
+    st.error(f"⚠️ Failed to load ETD count: {e}")
 
+# TOP BAR: Find by limit, keyword, year
+top_bar = st.columns(3)
+
+# 🔹 Limit
 with top_bar[0]:
-    with st.form(key="limit_form", clear_on_submit=False):
+    with st.form(key="limit_form"):
         limit = st.number_input("Limit", min_value=1, max_value=1000, value=100)
-        submitted_limit = st.form_submit_button("📥 Find ETDs")
-
-        if submitted_limit:
+        if st.form_submit_button("📥 Find ETDs"):
             try:
-                st.session_state.selected_index = 0
-                results = get_etd_titles(limit)
-                st.session_state.results = [r["o"]["value"] for r in results]
+                results = backend.get_etd_titles(limit)
+                st.session_state.results = [r.get("o", r.get("title"))["value"] for r in results]
                 st.session_state.iris = [r["s"]["value"] for r in results]
+                st.session_state.selected_index = 0
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"❌ {e}")
 
+# 🔹 Keyword
 with top_bar[1]:
-    with st.form(key="keyword_form", clear_on_submit=False):
+    with st.form(key="keyword_form"):
         keyword = st.text_input("Keyword")
-        submitted_keyword = st.form_submit_button("🔎 Search")
-
-        if submitted_keyword:
+        if st.form_submit_button("🔎 Search"):
             try:
-                st.session_state.selected_index = 0
-                results = search_etds_by_keyword(keyword)
-                st.session_state.results = [r["title"]["value"] for r in results]
+                results = backend.search_etds_by_keyword(keyword)
+                st.session_state.results = [r.get("title")["value"] for r in results]
                 st.session_state.iris = [r["s"]["value"] for r in results]
+                st.session_state.selected_index = 0
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"❌ {e}")
 
-
+# 🔹 Year
 with top_bar[2]:
-    with st.form(key="year_form", clear_on_submit=False):
-        year = st.text_input("Year")
-        submitted_year = st.form_submit_button("📅 Search")
+    with st.form(key="year_form"):
+        year = st.text_input("Year (e.g., 2015)")
+        if st.form_submit_button("📅 Search"):
+            if not year.isdigit():
+                st.error("❌ Please enter a numeric year")
+            else:
+                try:
+                    results = backend.get_etds_by_year(year)
+                    st.session_state.results = [r.get("title")["value"] for r in results]
+                    st.session_state.iris = [r["s"]["value"] for r in results]
+                    st.session_state.selected_index = 0
+                except Exception as e:
+                    st.error(f"❌ {e}")
 
-        if submitted_year:
-            try:
-                st.session_state.selected_index = 0
-                results = get_etds_by_year(year)
-                st.session_state.results = [r["title"]["value"] for r in results]
-                st.session_state.iris = [r["s"]["value"] for r in results]
-            except Exception as e:
-                st.error(f"Error: {e}")
-
-
-
-
-# ========== 📄 Results (Simulated Scrollable) ==========
-st.markdown(
-    "<h3 style='margin-bottom: 0.2rem; margin-top: 0;'>Results</h3>",
-    unsafe_allow_html=True
-)
-
+# ========== 📄 RESULTS ==========
+st.subheader("Results")
 if st.session_state.results:
-
-    # Scrollable radio list using custom CSS
-    st.markdown("""
-        <style>
-        /* Scrollable container for the radio buttons */
-        div[data-testid="stRadio"] > div {
-            max-height: 300px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            border: 1px solid #ddd;
-            padding-left: 10px;
-            padding-right: 10px;
-            display: block !important;
-        }
-
-        /* Each radio option in its own row with aligned button + label */
-        div[data-testid="stRadio"] label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.3rem;
-            white-space: normal !important;
-            word-break: break-word;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-
-    st.markdown(
-        f"<p style='font-size: 0.85rem; color: gray; margin: 0;'>Showing {len(st.session_state.results)} results</p>",
-        unsafe_allow_html=True
-    )
-
     selected_title = st.radio(
-        "",
-        st.session_state.results if isinstance(st.session_state.results,list) else list(st.session_state.results),
-        key="etd_radio_select",
-        label_visibility="collapsed",
-        index=st.session_state.get("selected_index", 0)
+        label="Select ETD",
+        options=st.session_state.results,
+        index=st.session_state.selected_index,
+        key="etd_radio_select"
     )
-
-    # Store the selected index
     st.session_state.selected_index = st.session_state.results.index(selected_title)
 else:
-    st.info("No ETDs to display. Use the search controls above to get started.")
+    st.info("No ETDs found. Use the search tools above.")
 
-# ========== 🧾 Metadata ==========
+# ========== 🧾 METADATA ==========
 st.subheader("Metadata")
-
 if st.session_state.results:
-    selected_index = st.session_state.get("selected_index", 0)
-    iri = st.session_state.iris[selected_index]
-
+    iri = st.session_state.iris[st.session_state.selected_index]
     try:
-        metadata = get_etd_metadata(iri)
-        link = get_etd_link(iri)
-
+        metadata = backend.get_etd_metadata(iri)
+        link = backend.get_etd_link(iri)
         if link:
-            st.markdown(f"🔗 [Open ETD in Browser]({link})", unsafe_allow_html=True)
-        else:
-            st.markdown("🔗 No link available.")
-
-        if metadata:
-            mdDict = {}
-            for item in metadata:
-                key, val = item.split(":", 1) if ":" in item else ("Info", item)
-                mdDict[key] = val
-
-            st.markdown(f"Title: {mdDict['hasTitle'].strip()}")
-            st.markdown(f"Author: {mdDict['Author'].strip()}")
-            st.markdown(f"Year: {mdDict['issuedDate'].strip()}")
-            school = os.path.basename(mdDict['publishedBy'].strip()).replace('-','')
-            st.markdown(f"Institution: {school}")
-            st.markdown(f"Abstract: {mdDict['hasAbstract'].strip()}")
-        else:
-            st.info("No metadata found for this ETD.")
+            st.markdown(f"[🔗 Open ETD Link]({link})")
+        for item in metadata:
+            st.markdown(f"• {item}")
     except Exception as e:
-        st.error(f"Error retrieving metadata: {e}")
+        st.error(f"❌ Metadata error: {e}")
