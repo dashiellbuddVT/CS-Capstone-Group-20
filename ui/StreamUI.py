@@ -51,6 +51,7 @@ with top_bar[0]:
 
         if submitted_limit:
             try:
+                st.session_state.selected_index = 0
                 results = get_etd_titles(limit)
                 st.session_state.results = [r["o"]["value"] for r in results]
                 st.session_state.iris = [r["s"]["value"] for r in results]
@@ -64,6 +65,7 @@ with top_bar[1]:
 
         if submitted_keyword:
             try:
+                st.session_state.selected_index = 0
                 results = search_etds_by_keyword(keyword)
                 st.session_state.results = [r["title"]["value"] for r in results]
                 st.session_state.iris = [r["s"]["value"] for r in results]
@@ -78,6 +80,7 @@ with top_bar[2]:
 
         if submitted_year:
             try:
+                st.session_state.selected_index = 0
                 results = get_etds_by_year(year)
                 st.session_state.results = [r["title"]["value"] for r in results]
                 st.session_state.iris = [r["s"]["value"] for r in results]

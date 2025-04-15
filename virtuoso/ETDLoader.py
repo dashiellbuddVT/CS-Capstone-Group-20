@@ -4,6 +4,7 @@ import time
 import requests
 from requests.auth import HTTPDigestAuth
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from ETDQueries import clear_graph
 from tqdm import tqdm
 
 # Configuration
@@ -188,7 +189,7 @@ def load_batch(batch, batch_num=None):
         traceback.print_exc()
         return False, 0
 
-def load_etds_from_json(json_file_path, max_batches=None, num_workers=4):
+def load_etds_from_json(json_file_path, max_batches=None, num_workers=4,clean=False):
     """
     Load ETDs from a JSON file into the database
     
@@ -202,6 +203,13 @@ def load_etds_from_json(json_file_path, max_batches=None, num_workers=4):
     """
     try:
         start_time = time.time()
+
+        if clean:
+            print(f"Clearing Graph {graph_URI}...")
+            clear_graph()
+
+
+
         print(f"Loading ETDs from {json_file_path}...")
         
         # Read JSON data
@@ -291,13 +299,14 @@ def main():
     parser.add_argument('--max-batches', type=int, help='Maximum number of batches to load')
     parser.add_argument('--workers', type=int, default=4, help='Number of parallel workers')
     parser.add_argument('--force', action='store_true', help='Force loading even if write permission check fails')
+    parser.add_argument('--clean', action='store_true', help='creates a new table to load into')
     args = parser.parse_args()
     
     if not os.path.exists(args.json_file):
         print(f"Error: JSON file not found: {args.json_file}")
         return False
     
-    return load_etds_from_json(args.json_file, args.max_batches, args.workers)
+    return load_etds_from_json(args.json_file, args.max_batches, args.workers, args.clean)
 
 if __name__ == "__main__":
     success = main()

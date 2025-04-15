@@ -23,6 +23,28 @@ def send_query(query):
     )
     return response
 
+def clear_graph():
+    query = f"""
+    DROP GRAPH <{graph_URI}>
+    """
+    response = send_query(query)
+
+    if response.status_code != 200:
+        print(f"Failed: {response.status_code} {response.reason}")
+        return []
+    
+    query = f"""
+    Create GRAPH <{graph_URI}>
+    """
+    response = send_query(query)
+
+    if response.status_code == 200:
+        return response.json()["results"]["bindings"]
+    else:
+        print(f"Failed: {response.status_code} {response.reason}")
+        return []
+
+
 def get_etd_titles(limit=100):
     """Get ETD titles with limit"""
     query = f"""
