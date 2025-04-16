@@ -1,0 +1,87 @@
+from neo4j import GraphDatabase
+import json
+import time
+
+driver = GraphDatabase.driver("bolt://localhost:7687")
+
+def load_etds_to_neo4j(json_path):
+    start_time = time.time()
+
+    with open(json_path, 'r') as f:
+        etds = json.load(f)
+
+    with driver.session() as session:
+        for etd in etds:
+            uri = etd.get("uri") or f"http://localhost:7474/etd/{etd.get('id', 'unknown')}"
+            title = etd.get("title", "")
+            author = etd.get("author", "")
+            year = etd.get("year", "")
+            advisor = etd.get("advisor", "")
+            university = etd.get("university", "")
+            department = etd.get("department", "")
+            abstract = etd.get("abstract", "")
+            keywords = etd.get("keywords", [])
+
+            # Create ETD node
+            session.run("""
+                MERGE (e:ETD {uri: $uri})
+                SET e.title = $title,
+                    e.year = $year,
+                    e.abstract = $abstract
+            """, uri=uri, title=title, year=year, abstract=abstract)
+
+            # Author
+            if author:
+                session.run("""
+                    MERGE (a:Author {name: $author})
+                    WITH a
+                    MATCH (e:ETD {uri: $uri})
+                    MERGE (e)-[:WRITTEN_BY]->(a)
+                """, author=author, uri=uri)
+
+            # Advisor
+            if advisor:
+                session.run("""
+                    MERGE (a:Advisor {name: $advisor})
+                    WITH a
+                    MATCH (e:ETD {uri: $uri})
+                    MERGE (e)-[:ADVISED_BY]->(a)
+                """, advisor=advisor, uri=uri)
+
+            # University
+            if university:
+                session.run("""
+                    MERGE (u:University {name: $university})
+                    WITH u
+                    MATCH (e:ETD {uri: $uri})
+                    MERGE (e)-[:SUBMITTED_TO]->(u)
+                """, university=university, uri=uri)
+
+            # Department
+            if department:
+                session.run("""
+                    MERGE (d:Department {name: $department})
+                    WITH d
+                    MATCH (e:ETD {uri: $uri})
+                    MERGE (e)-[:BELONGS_TO]->(d)
+                """, department=department, uri=uri)
+
+            # Keywords
+            for keyword in keywords:
+                if keyword:
+                    session.run("""
+                        MERGE (k:Keyword {name: $keyword})
+                        WITH k
+                        MATCH (e:ETD {uri: $uri})
+                        MERGE (e)-[:HAS_KEYWORD]->(k)
+                    """, keyword=keyword, uri=uri)
+
+    elapsed = time.time() - start_time
+    print(f"✅ Loaded ETDs in {elapsed:.2f}s")
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("json_file", help="Path to JSON ETD metadata")
+    args = parser.parse_args()
+    load_etds_to_neo4j(args.json_file)
