@@ -1,5 +1,4 @@
 import streamlit as st
-import webbrowser
 import sys
 import os
 
@@ -99,26 +98,81 @@ with top_bar[2]:
 # ========== 📄 RESULTS ==========
 st.subheader("Results")
 if st.session_state.results:
+
+    # Scrollable radio list using custom CSS
+    st.markdown("""
+        <style>
+        /* Scrollable container for the radio buttons */
+        div[data-testid="stRadio"] > div {
+            max-height: 300px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            border: 1px solid #ddd;
+            padding-left: 10px;
+            padding-right: 10px;
+            display: block !important;
+        }
+
+        /* Each radio option in its own row with aligned button + label */
+        div[data-testid="stRadio"] label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.3rem;
+            white-space: normal !important;
+            word-break: break-word;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+
+    st.markdown(
+        f"<p style='font-size: 0.85rem; color: gray; margin: 0;'>Showing {len(st.session_state.results)} results</p>",
+        unsafe_allow_html=True
+    )
+
     selected_title = st.radio(
         label="Select ETD",
         options=st.session_state.results,
         index=st.session_state.selected_index,
         key="etd_radio_select"
     )
+
+    # Store the selected index
     st.session_state.selected_index = st.session_state.results.index(selected_title)
 else:
-    st.info("No ETDs found. Use the search tools above.")
+    st.info("No ETDs to display. Use the search controls above to get started.")
+
 
 # ========== 🧾 METADATA ==========
 st.subheader("Metadata")
+
 if st.session_state.results:
+    selected_index = st.session_state.get("selected_index", 0)
     iri = st.session_state.iris[st.session_state.selected_index]
+
     try:
         metadata = backend.get_etd_metadata(iri)
         link = backend.get_etd_link(iri)
+
         if link:
-            st.markdown(f"[🔗 Open ETD Link]({link})")
-        for item in metadata:
-            st.markdown(f"• {item}")
+            st.markdown(f"🔗 [Open ETD in Browser]({link})", unsafe_allow_html=True)
+        else:
+            st.markdown("🔗 No link available.")
+
+        if metadata:
+            mdDict = {}
+            for item in metadata:
+                key, val = item.split(":", 1) if ":" in item else ("Info", item)
+                mdDict[key] = val
+
+            st.markdown(f"Title: {mdDict['hasTitle'].strip()}")
+            st.markdown(f"Author: {mdDict['Author'].strip()}")
+            st.markdown(f"Year: {mdDict['issuedDate'].strip()}")
+            school = os.path.basename(mdDict['publishedBy'].strip()).replace('-','')
+            st.markdown(f"Institution: {school}")
+            st.markdown(f"Abstract: {mdDict['hasAbstract'].strip()}")
+        else:
+            st.info("No metadata found for this ETD.")
     except Exception as e:
-        st.error(f"❌ Metadata error: {e}")
+        st.error(f"Error retrieving metadata: {e}")

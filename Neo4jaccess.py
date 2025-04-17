@@ -3,7 +3,7 @@ from py2neo import Graph
 def connect_to_neo4j():
     graph = Graph("bolt://localhost:7687")
 
-def getNeo4jTitles(n=100):
+def get_etd_titles(n=100):
     graph = connect_to_neo4j()
     query = f"""
     MATCH (e:ETD)
