@@ -6,6 +6,7 @@ PASSWORD = "jzalO94sCd2UeveJIewPIPlWH1JIJ9vGZ0e3i9URgNc"
 
 driver = None
 
+
 def connect_to_neo4j():
     global driver
     if driver is None:
