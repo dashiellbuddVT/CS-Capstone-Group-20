@@ -1,23 +1,24 @@
 from neo4j import GraphDatabase
 
-# Global Neo4j driver
-URI = "bolt://localhost:7687"
+AURA_URI = "neo4j+s://3adec16a.databases.neo4j.io"
+USERNAME = "neo4j"
+PASSWORD = "jzalO94sCd2UeveJIewPIPlWH1JIJ9vGZ0e3i9URgNc"
+
 driver = None
 
 def connect_to_neo4j():
     global driver
     if driver is None:
         try:
-            driver = GraphDatabase.driver(URI)
+            driver = GraphDatabase.driver(AURA_URI, auth=(USERNAME, PASSWORD))
             driver.verify_connectivity()
-            print("Connected to Neo4j successfully!")
+            print(" Connected to Neo4j Aura successfully!")
         except Exception as e:
-            print("Connection failed:", e)
+            print("Aura connection failed:", e)
             driver = None
     return driver
 
 
-# ETD count
 def get_etd_count():
     connect_to_neo4j()
     if driver is None:
@@ -28,7 +29,6 @@ def get_etd_count():
         return record["count"] if record else 0
 
 
-# Get ETDs by title
 def get_etd_titles(limit=100):
     connect_to_neo4j()
     if driver is None:
@@ -45,7 +45,6 @@ def get_etd_titles(limit=100):
         return [{"s": {"value": r["uri"]}, "o": {"value": r["title"]}} for r in result]
 
 
-# Search ETDs by keyword in title
 def search_etds_by_keyword(keyword, limit=100):
     connect_to_neo4j()
     if driver is None:
@@ -64,7 +63,6 @@ def search_etds_by_keyword(keyword, limit=100):
         return [{"s": {"value": r["uri"]}, "title": {"value": r["title"]}} for r in result]
 
 
-# Get ETDs by publication year
 def get_etds_by_year(year, limit=100):
     connect_to_neo4j()
     if driver is None:
@@ -83,7 +81,6 @@ def get_etds_by_year(year, limit=100):
         return [{"s": {"value": r["uri"]}, "title": {"value": r["title"]}} for r in result]
 
 
-# Get metadata for an ETD
 def get_etd_metadata(iri):
     connect_to_neo4j()
     if driver is None:
@@ -106,6 +103,5 @@ def get_etd_metadata(iri):
         return [f"{k}: {v}" for k, v in record.items() if v]
 
 
-# Get ETD link (returns IRI directly)
 def get_etd_link(iri):
-    return iri  # assuming uri is a usable link
+    return iri
