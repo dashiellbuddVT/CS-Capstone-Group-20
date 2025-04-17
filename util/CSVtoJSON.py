@@ -2,7 +2,6 @@ def main():
     import argparse
     import pandas as pd
 
-    print("here")
     parser = argparse.ArgumentParser(description='convert CSV of metadata into JSON')
     parser.add_argument('CSV_file', help='Path to the csv file containing ETD metadata')
     parser.add_argument('--out_file', type=str, help='json file name')

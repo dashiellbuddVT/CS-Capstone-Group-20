@@ -30,7 +30,7 @@ def send_sparql_query(query):
                 # Replace the portion of the debug query
                 debug_query = debug_query[:abstract_start] + abbreviated
     
-    print(f"DEBUG - Sending query (first 500 chars):\n{debug_query[:500]}...\n")
+    #print(f"DEBUG - Sending query (first 500 chars):\n{debug_query[:500]}...\n")
     
     headers = {
         "Content-Type": "application/sparql-update; charset=utf-8",
@@ -45,11 +45,11 @@ def send_sparql_query(query):
             headers=headers
         )
         
-        print(f"DEBUG - Response status: {response.status_code}")
-        print(f"DEBUG - Response headers: {response.headers}")
+        #print(f"DEBUG - Response status: {response.status_code}")
+        #print(f"DEBUG - Response headers: {response.headers}")
         
         if response.status_code != 200:
-            print(f"DEBUG - Response text: {response.text[:200]}")
+            print(f"DEBUG - Response text: {response.text}")
         
         return response
     except Exception as e:
@@ -78,7 +78,7 @@ def create_insert_query(etds):
             if not text:
                 return ""
             # Handle common escape sequences
-            text = text.replace('\\', '\\\\')  
+            text = text.replace('\\', '\\\\') 
             text = text.replace('"', '\\"')
             text = text.replace('\n', '\\n')
             text = text.replace('\r', '\\r')
@@ -111,7 +111,8 @@ def create_insert_query(etds):
         author_obj = f"http://etdkb.endeavour.cs.vt.edu/v1/objects/author{etd['id']}"
         query += f"\n<{etd_uri}> <{hasAuthor_predicate}> <{author_obj}> ."
         
-        query += f"\n<{etd_uri}> <{year_predicate}> \"{etd['year']}\" ."
+        if 'year' in etd and etd['year']:
+            query += f"\n<{etd_uri}> <{year_predicate}> \"{int(etd['year'])}\" ."
         
         # Add URI if available
         if 'URI' in etd and etd['URI']:
@@ -134,7 +135,7 @@ def create_insert_query(etds):
             query += f"\n<{etd_uri}> <{discipline_predicate}> <{discipline_obj}> ."
         
         if 'university' in etd and etd['university']:
-            university = escape_for_sparql(etd['university']).replace(' ','-')
+            university = etd['university'].replace(' ','-').replace('\r','').replace('\n','')
             university_obj = f"http://etdkb.endeavour.cs.vt.edu/v1/objects/{university}"
             query += f"\n<{etd_uri}> <{university_predicate}> <{university_obj}> ."
         
