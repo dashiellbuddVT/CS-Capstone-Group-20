@@ -34,7 +34,7 @@ if selected_backend != st.session_state.backend_name:
     st.session_state.iris = []
     st.session_state.metadata = []
     st.session_state.selected_index = 0
-    st.experimental_rerun()
+    st.rerun()
 
 backend = st.session_state.backend
 
