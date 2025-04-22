@@ -107,7 +107,8 @@ def search_etds_by_keyword(keyword, limit=100, pred='title'):
         'advisor' : 'http://etdkb.endeavour.cs.vt.edu/v1/predicate/academicAdvisor',
         'abstract' : 'http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasAbstract',
         'institution' : 'http://etdkb.endeavour.cs.vt.edu/v1/predicate/publishedBy',
-        'department' : 'http://etdkb.endeavour.cs.vt.edu/v1/predicate/academicDepartment'
+        'department' : 'http://etdkb.endeavour.cs.vt.edu/v1/predicate/academicDepartment',
+        'year' : 'http://etdkb.endeavour.cs.vt.edu/v1/predicate/issuedDate'
     }
 
     if pred == 'institution' or pred == 'department':

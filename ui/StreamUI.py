@@ -49,58 +49,41 @@ try:
     st.info(f"📊 {selected_backend} contains {count} ETDs")
 except Exception as e:
     st.error(f"⚠️ Failed to load ETD count: {e}")
+        
 
-# TOP BAR: Find by limit, keyword, year
-top_bar = st.columns(3)
+with st.form(key="keyword_form"):
+    # Full-width keyword input
+    keyword = st.text_input("Enter keyword", key="keyword_input")
 
-# 🔹 Limit
-with top_bar[0]:
-    with st.form(key="limit_form"):
-        limit = st.number_input("Limit", min_value=1, max_value=1000, value=100)
-        if st.form_submit_button("📥 Find ETDs"):
-            try:
-                results = backend.get_etd_titles(limit)
-                st.session_state.results = [r.get("o", r.get("title"))["value"] for r in results]
-                st.session_state.iris = [r["s"]["value"] for r in results]
-                st.session_state.selected_index = 0
-            except Exception as e:
-                st.error(f"❌ {e}")
+    # Row with 3 columns: Field, Limit, Search button
+    col1, col2, col3 = st.columns([1, 2, 2])
 
-# 🔹 Keyword
-with top_bar[1]:
-    with st.form(key="keyword_form"):
-        keyword = st.text_input("Enter keyword")
+    with col2:
+        metadata_field = st.selectbox(
+            "Search in",
+            ["title", "author", "advisor", "abstract", "institution", "department", "year"],
+            label_visibility="collapsed",
+            placeholder="Field"
+        )
 
-        col1, col2 = st.columns([1, 2])  # Adjust ratio to keep layout stable
+    with col3:
+        search_limit = st.number_input("Limit", min_value=1, max_value=1000, value=100, key="keyword_limit", 
+            label_visibility="collapsed")
 
-        with col2:
-            metadata_field = st.selectbox("Search in", ["title", "author", "advisor", "abstract", "institution", "department"], label_visibility="collapsed")
+    with col1:
+        search_button = st.form_submit_button("🔍 Search")
 
-        with col1:
-            if st.form_submit_button("🔎 Search"):
-                try:
-                    results = backend.search_etds_by_keyword(keyword, pred=metadata_field)
-                    st.session_state.results = [r.get("title")["value"] for r in results]
-                    st.session_state.iris = [r["s"]["value"] for r in results]
-                    st.session_state.selected_index = 0
-                except Exception as e:
-                    st.error(f"❌ {e}")
+    if search_button:
+        try:
+            results = backend.search_etds_by_keyword(keyword, pred=metadata_field, limit=search_limit)
+            st.session_state.results = [r.get("title")["value"] for r in results]
+            st.session_state.iris = [r["s"]["value"] for r in results]
+            st.session_state.selected_index = 0
+        except Exception as e:
+            st.error(f"❌ {e}")
 
-# 🔹 Year
-with top_bar[2]:
-    with st.form(key="year_form"):
-        year = st.text_input("Year (e.g., 2015)")
-        if st.form_submit_button("📅 Search"):
-            if not year.isdigit():
-                st.error("❌ Please enter a numeric year")
-            else:
-                try:
-                    results = backend.get_etds_by_year(year)
-                    st.session_state.results = [r.get("title")["value"] for r in results]
-                    st.session_state.iris = [r["s"]["value"] for r in results]
-                    st.session_state.selected_index = 0
-                except Exception as e:
-                    st.error(f"❌ {e}")
+
+
 
 # ========== 📄 RESULTS ==========
 st.subheader("Results")
