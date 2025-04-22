@@ -69,15 +69,22 @@ with top_bar[0]:
 # 🔹 Keyword
 with top_bar[1]:
     with st.form(key="keyword_form"):
-        keyword = st.text_input("Keyword")
-        if st.form_submit_button("🔎 Search"):
-            try:
-                results = backend.search_etds_by_keyword(keyword)
-                st.session_state.results = [r.get("title")["value"] for r in results]
-                st.session_state.iris = [r["s"]["value"] for r in results]
-                st.session_state.selected_index = 0
-            except Exception as e:
-                st.error(f"❌ {e}")
+        keyword = st.text_input("Enter keyword")
+
+        col1, col2 = st.columns([1, 2])  # Adjust ratio to keep layout stable
+
+        with col2:
+            metadata_field = st.selectbox("Search in", ["title", "author", "advisor", "abstract", "institution", "department"], label_visibility="collapsed")
+
+        with col1:
+            if st.form_submit_button("🔎 Search"):
+                try:
+                    results = backend.search_etds_by_keyword(keyword, pred=metadata_field)
+                    st.session_state.results = [r.get("title")["value"] for r in results]
+                    st.session_state.iris = [r["s"]["value"] for r in results]
+                    st.session_state.selected_index = 0
+                except Exception as e:
+                    st.error(f"❌ {e}")
 
 # 🔹 Year
 with top_bar[2]:
@@ -162,16 +169,27 @@ if st.session_state.results:
 
         if metadata:
             mdDict = {}
+
             for item in metadata:
                 key, val = item.split(":", 1) if ":" in item else ("Info", item)
                 mdDict[key] = val
 
-            st.markdown(f"Title: {mdDict['hasTitle'].strip()}")
-            st.markdown(f"Author: {mdDict['Author'].strip()}")
-            st.markdown(f"Year: {mdDict['issuedDate'].strip()}")
-            school = os.path.basename(mdDict['publishedBy'].strip()).replace('-','')
-            st.markdown(f"Institution: {school}")
-            st.markdown(f"Abstract: {mdDict['hasAbstract'].strip()}")
+            if 'hasTitle' in mdDict:
+                st.markdown(f"Title: {mdDict['hasTitle'].strip()}")
+            if 'Author' in mdDict:
+                st.markdown(f"Author: {mdDict['Author'].strip()}")
+            if 'academicAdvisor' in mdDict:
+                st.markdown(f"Advisor: {mdDict['academicAdvisor'].strip()}")
+            if 'issuedDate' in mdDict:
+                st.markdown(f"Year: {mdDict['issuedDate'].strip()}")
+            if 'academicDepartment' in mdDict:
+                department = os.path.basename(mdDict['academicDepartment'].strip()).replace('-',' ')
+                st.markdown(f"Department: {department}")
+            if 'publishedBy' in mdDict:
+                school = os.path.basename(mdDict['publishedBy'].strip()).replace('-',' ')
+                st.markdown(f"Institution: {school}")
+            if 'hasAbstract' in mdDict:
+                st.markdown(f"Abstract: {mdDict['hasAbstract'].strip()}")
         else:
             st.info("No metadata found for this ETD.")
     except Exception as e:

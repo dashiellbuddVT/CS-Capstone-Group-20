@@ -94,12 +94,13 @@ def create_insert_query(etds):
         year_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/issuedDate"
         uri_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/identifier"
         abstract_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasAbstract"
-        department_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/academicDiscipline"
+        department_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/academicDepartment"
         discipline_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/academicDiscipline"
         university_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/publishedBy"
         keyword_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasKeyword"
         hasAuthor_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasAuthor"
         hasChapter_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasPart"
+        academicAdvisor_predicate = f"http://etdkb.endeavour.cs.vt.edu/v1/predicate/academicAdvisor"
         
         # Safely escape and format the title
         title = escape_for_sparql(etd['title'])
@@ -128,6 +129,10 @@ def create_insert_query(etds):
             department = escape_for_sparql(etd['department']).replace(' ','-')
             department_obj = f"http://etdkb.endeavour.cs.vt.edu/v1/objects/{department}"
             query += f"\n<{etd_uri}> <{department_predicate}> <{department_obj}> ."
+
+        if 'advisor' in etd and etd['advisor']:
+            advisor = escape_for_sparql(etd['advisor'])
+            query += f"\n<{etd_uri}> <{academicAdvisor_predicate}> \"{advisor}\" ."
         
         if 'discipline' in etd and etd['discipline']:
             discipline = escape_for_sparql(etd['discipline']).replace(' ','-')

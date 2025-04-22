@@ -100,13 +100,26 @@ def get_etd_metadata(iri):
     
     return metadata
 
-def search_etds_by_keyword(keyword, limit=100):
-    """Search ETDs by keyword in title"""
+def search_etds_by_keyword(keyword, limit=100, pred='title'):
+    predDict = {
+        'title': 'http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasTitle',
+        'author' : 'http://etdkb.endeavour.cs.vt.edu/v1/predicate/Author',
+        'advisor' : 'http://etdkb.endeavour.cs.vt.edu/v1/predicate/academicAdvisor',
+        'abstract' : 'http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasAbstract',
+        'institution' : 'http://etdkb.endeavour.cs.vt.edu/v1/predicate/publishedBy',
+        'department' : 'http://etdkb.endeavour.cs.vt.edu/v1/predicate/academicDepartment'
+    }
+
+    if pred == 'institution' or pred == 'department':
+        keyword = keyword.replace(' ','-')
+
+    """Search ETDs by keyword in chosen predicate"""
     query = f"""
-    SELECT DISTINCT ?s ?title FROM <{graph_URI}>
+   SELECT DISTINCT ?s ?title FROM <{graph_URI}>
     WHERE {{
-        ?s <http://etdkb.endeavour.cs.vt.edu/v1/predicate/hasTitle> ?title .
-        FILTER(CONTAINS(LCASE(?title), LCASE("{keyword}")))
+        ?s <{predDict[pred]}> ?val .
+        FILTER(CONTAINS(LCASE(STR(?val)), LCASE("{keyword}")))
+        ?s <{predDict['title']}> ?title .
     }}
     LIMIT {limit}
     """
