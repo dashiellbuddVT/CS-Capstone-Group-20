@@ -1,108 +1,99 @@
 from neo4j import GraphDatabase
 
-AURA_URI = "neo4j+s://3adec16a.databases.neo4j.io"
-USERNAME = "neo4j"
-PASSWORD = "jzalO94sCd2UeveJIewPIPlWH1JIJ9vGZ0e3i9URgNc"
+# For local Neo4j desktop/server with no auth:
+URI       = "bolt://localhost:7687"
+AUTH      = None
+
+# If you want to use Aura, uncomment and fill in:
+# URI       = "neo4j+s://3adec16a.databases.neo4j.io"
+# AUTH      = ("neo4j", "jzal094sCd2UeveJIewPIPlWH1JIJ9vGZ0e3i9URgNc")
 
 driver = None
 
-
 def connect_to_neo4j():
+    """Lazily initialize and verify connectivity once."""
     global driver
     if driver is None:
+        if AUTH:
+            driver = GraphDatabase.driver(URI, auth=AUTH)
+        else:
+            driver = GraphDatabase.driver(URI)
         try:
-            driver = GraphDatabase.driver(AURA_URI, auth=(USERNAME, PASSWORD))
             driver.verify_connectivity()
-            print(" Connected to Neo4j Aura successfully!")
         except Exception as e:
-            print("Aura connection failed:", e)
+            print(" Unable to connect to Neo4j:", e)
             driver = None
     return driver
 
-
 def get_etd_count():
-    connect_to_neo4j()
-    if driver is None:
+    """Return the total number of :ETD nodes."""
+    if not connect_to_neo4j():
         return 0
     with driver.session() as session:
-        result = session.run("MATCH (e:ETD) RETURN count(e) AS count")
-        record = result.single()
-        return record["count"] if record else 0
+        rec = session.run("MATCH (e:ETD) RETURN count(e) AS count").single()
+        return rec["count"] if rec else 0
 
-
-def get_etd_titles(limit=100):
-    connect_to_neo4j()
-    if driver is None:
+def search_etds_by_keyword(keyword, pred="title", limit=100):
+    """
+    Search ETDs by any property (title, author, advisor, abstract, etc.).
+    Returns a list of {"s":{"value":uri}, "title":{"value":value}} dicts.
+    """
+    if not connect_to_neo4j():
         return []
+    # only allow these fields for safety
+    allowed = {"title","author","advisor","abstract","university","department","year"}
+    if pred not in allowed:
+        pred = "title"
+    cypher = f"""
+    MATCH (e:ETD)
+    WHERE toLower(e.{pred}) CONTAINS toLower($kw)
+    RETURN e.uri AS uri, e.{pred} AS value
+    LIMIT $limit
+    """
     with driver.session() as session:
-        result = session.run(
-            """
-            MATCH (e:ETD)
-            RETURN e.uri AS uri, e.title AS title
-            LIMIT $limit
-            """,
-            limit=limit
-        )
-        return [{"s": {"value": r["uri"]}, "o": {"value": r["title"]}} for r in result]
-
-
-def search_etds_by_keyword(keyword, limit=100):
-    connect_to_neo4j()
-    if driver is None:
-        return []
-    with driver.session() as session:
-        result = session.run(
-            """
-            MATCH (e:ETD)
-            WHERE toLower(e.title) CONTAINS toLower($kw)
-            RETURN e.uri AS uri, e.title AS title
-            LIMIT $limit
-            """,
-            kw=keyword,
-            limit=limit
-        )
-        return [{"s": {"value": r["uri"]}, "title": {"value": r["title"]}} for r in result]
-
-
-def get_etds_by_year(year, limit=100):
-    connect_to_neo4j()
-    if driver is None:
-        return []
-    with driver.session() as session:
-        result = session.run(
-            """
-            MATCH (e:ETD)
-            WHERE e.year = $year
-            RETURN e.uri AS uri, e.title AS title
-            LIMIT $limit
-            """,
-            year=year,
-            limit=limit
-        )
-        return [{"s": {"value": r["uri"]}, "title": {"value": r["title"]}} for r in result]
-
+        res = session.run(cypher, kw=keyword, limit=limit)
+        return [
+            {"s": {"value": r["uri"]}, "title": {"value": r["value"]}}
+            for r in res
+        ]
 
 def get_etd_metadata(iri):
-    connect_to_neo4j()
-    if driver is None:
-        return ["Neo4j not connected"]
+    """
+    Retrieve all the standard metadata fields for one ETD node.
+    Returns a list of strings like "hasTitle: The Title…", etc.
+    """
+    if not connect_to_neo4j():
+        return []
+    cypher = """
+    MATCH (e:ETD {uri: $iri})
+    RETURN
+      e.title            AS hasTitle,
+      e.author           AS Author,
+      e.advisor          AS academicAdvisor,
+      e.year             AS issuedDate,
+      e.department       AS academicDepartment,
+      e.university       AS publishedBy,
+      e.abstract         AS hasAbstract
+    """
     with driver.session() as session:
-        result = session.run(
-            """
-            MATCH (e:ETD {uri: $iri})
-            RETURN e.title AS hasTitle,
-                   e.author AS Author,
-                   e.year AS issuedDate,
-                   e.university AS publishedBy,
-                   e.abstract AS hasAbstract
-            """,
-            iri=iri
-        )
-        record = result.single()
-        if not record:
+        rec = session.run(cypher, iri=iri).single()
+        if not rec:
             return ["No metadata found"]
-        return [f"{k}: {v}" for k, v in record.items() if v]
-
+        out = []
+        # keep the order your UI expects
+        for key in [
+            "hasTitle",
+            "Author",
+            "academicAdvisor",
+            "issuedDate",
+            "academicDepartment",
+            "publishedBy",
+            "hasAbstract"
+        ]:
+            v = rec.get(key)
+            out.append(f"{key}: {v}" if v is not None else f"{key}: N/A")
+        return out
 
 def get_etd_link(iri):
+    """The UI will simply open the stored URI in a new tab."""
     return iri
