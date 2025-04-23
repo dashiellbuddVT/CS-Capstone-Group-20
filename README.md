@@ -2,7 +2,7 @@
 
 ## ETD (Electronic Theses and Dissertations) Tools
 
-This repository contains tools for working with Electronic Theses and Dissertations (ETDs) data in a Virtuoso triplestore database.
+This repository contains tools for working with Electronic Theses and Dissertations (ETDs) data in a Virtuoso triplestore database and Neo4j property graph database.
 
 ### Components
 
