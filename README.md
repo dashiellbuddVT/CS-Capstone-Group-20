@@ -6,45 +6,38 @@ This repository contains tools for working with Electronic Theses and Dissertati
 
 ### Components
 
-- **ETDQueries.py**: Query tools for retrieving ETD metadata from the Virtuoso database.
-- **ETDLoader.py**: Tool for loading ETD metadata into the Virtuoso database.
-- **ETDExplorer.py**: GUI application for browsing and exploring ETDs.
-- **test_etd_loader.py**: Testing framework for the ETD loader.
+- **VirtuosoQueries.py**: Query tools for retrieving ETD metadata from the Virtuoso database.
+- **VirtuosoLoader.py**: Tool for loading ETD metadata into the Virtuoso database.
+- **Neo4j_Queries.py**: Query tools for retrieving ETD metadata from the Virtuoso database.
+- **Neo4j_Loader.py**: Tool for loading ETD metadata into the Virtuoso database.
+- **CSVtoJSON.py**: Converts CSV files into JSONs to be loaded into Neo4j
+- **StreamUI.py**: GUI application for browsing and exploring ETDs.
+
+- **Test_ETD_10.csv**: Example of CSV file used to load Neo4j
+- **output_file_10.json**: Example of JSON file used to load Neo4j
+- **users.json**: Stores usernames and passwords for access to StreamUI
 
 ### Known Issues
 
 - **Read-Only Virtuoso Setup**: The Virtuoso database appears to be configured in read-only mode for the provided credentials. While SPARQL INSERT queries receive a 200 OK response, the data is not actually persisted in the database.
-- **ETDLoader.py** includes a permission check function that verifies whether write operations are being stored.
+- **Neo4j_Loader.py** includes a permission check function that verifies whether write operations are being stored.
   - To fix this when running local Neo4j database: click three dots next to acgive DBSM > Settings > Change below line to match
   - ![Diagram](Neo4j_Auth_Settings.png)
 
 ### Usage
 
-#### Querying ETDs
-```bash
-python3 ETDQueries.py
-```
-
 #### Loading ETDs (Note: Database is Read-Only)
 - Virtuoso
 ```bash
-python3 ETDLoader.py 
+python VirtuosoLoader.py 
 ```
 - Neo4j
 ```bash
 python CSVtoJSON.py Test_ETD.csv --out_file output_file.json
+python Neo4j_Loader.py output_file.json
 ```
 
-#### Testing ETD Loader
+#### Running Local Webpage
 ```bash
-# Run a single test with specified size
-python3 test_etd_loader.py --size <number_of_test_etds>
-
-# Run performance benchmark with multiple dataset sizes
-python3 test_etd_loader.py --benchmark
-
-# Prevent cleanup of test data after test runs
-python3 test_etd_loader.py --size <number_of_test_etds> --no-cleanup
+streamlit run StreamUI.py
 ```
-
-The benchmark option tests the loader with multiple dataset sizes (10, 50, 100, 500, 1000 ETDs) and generates a performance graph showing execution time and loading rates.
